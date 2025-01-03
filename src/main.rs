@@ -6,9 +6,9 @@ use std::io::{Read, Write};
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = "rs_cp - copy files")]
+#[command(version, about="rs_cp - copy files", long_about = "rs_cp - copy files")]
 struct Args {
-    /// COPY FROM SRCS... TO DES
+    /// Copy from SRCS... to DES
     srcs_des: Vec<String>,
 }
 
