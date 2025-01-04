@@ -134,6 +134,10 @@ dependencies = [
 [[package]]
 name = "copier"
 version = "0.1.0"
+dependencies = [
+ "indicatif",
+ "log",
+]
 
 [[package]]
 name = "encode_unicode"
@@ -301,7 +305,6 @@ dependencies = [
  "clap",
  "copier",
  "env_logger",
- "indicatif",
  "log",
 ]
 
