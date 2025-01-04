@@ -132,6 +132,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "copier"
+version = "0.1.0"
+
+[[package]]
 name = "encode_unicode"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -295,6 +299,7 @@ name = "rs_cp"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "copier",
  "env_logger",
  "indicatif",
  "log",

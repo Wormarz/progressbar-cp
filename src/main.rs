@@ -1,10 +1,8 @@
 use clap::Parser;
+use copier::Copier;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use log::{debug, trace};
 use std::fs;
-
-mod copier;
-use copier::Copier;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
