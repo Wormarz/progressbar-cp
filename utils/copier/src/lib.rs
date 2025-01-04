@@ -1,5 +1,5 @@
 use std::io::{Read, Write};
-use log::debug;
+use log::trace;
 use std::fs;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
@@ -58,17 +58,17 @@ pub fn do_copy(args: &Vec<String>) -> Result<(), std::io::Error> {
     pb.set_style(sty);
 
     for src in &args[0..args.len() - 1] {
-        let src_file = fs::File::open(src)?;
-        let des_file =
-            fs::File::create(args[args.len() - 1].clone() + "/" + src)?;
-        let len = src_file.metadata().unwrap().len();
-        pb.set_length(len);
-
-        debug!(
+        trace!(
             "Copying {} to {}",
             src,
-            args[args.len() - 1].clone() + "/" + src
+            args[args.len() - 1].clone() + "/" + src.rsplit('/').next().unwrap()
         );
+
+        let src_file = fs::File::open(src)?;
+        let des_file =
+            fs::File::create(args[args.len() - 1].clone() + "/" + src.rsplit('/').next().unwrap())?;
+        let len = src_file.metadata().unwrap().len();
+        pb.set_length(len);
 
         copier.copy(src_file, des_file, None, |copied: u64, _: u64| {
             pb.set_position(copied);

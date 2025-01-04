@@ -1,5 +1,5 @@
 use clap::Parser;
-use log::trace;
+use log::debug;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -28,8 +28,9 @@ impl Args {
 
 fn main() -> Result<(), std::io::Error> {
     let args = Args::parse();
+    env_logger::init();
 
-    trace!("{:?}", args);
+    debug!("{:?}", args);
     args.check()?;
 
     copier::do_copy(&args.srcs_des)
