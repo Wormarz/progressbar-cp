@@ -1,48 +1,19 @@
-use std::io::{Read, Write};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use log::trace;
 use std::fs;
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
-pub struct Copier {
-    buffer: Vec<u8>,
-}
+mod copiers;
+mod filecopier;
 
-impl Copier {
-    pub fn new(buf_sz: usize) -> Self {
-        Self { buffer: vec![0u8; buf_sz] }
-    }
+use crate::filecopier::FileCopier;
 
-    pub fn copy<R: Read, W: Write>(
-        &mut self,
-        mut src: R,
-        mut des: W,
-        total: Option<u64>,
-        progress_callback: impl FnOnce(u64, u64) + Copy,
-    ) -> std::io::Result<u64> {
-        let mut copied = 0;
-
-        loop {
-            match src.read(&mut self.buffer) {
-                Ok(0) => break,
-                Ok(n) => {
-                    match des.write_all(&self.buffer[0..n]) {
-                        Ok(()) => {
-                            copied += n as u64;
-                            progress_callback(copied, total.unwrap_or(0));
-                        }
-                        Err(e) => return Err(e),
-                    }
-                }
-                Err(e) => return Err(e),
-            }
-        }
-        Ok(copied)
-    }
-}
-
+#[cfg(feature = "basecopier")]
+use copiers::basecopier::Copier;
+#[cfg(feature = "zerocopier")]
+use copiers::zerocopier::Copier;
 
 pub fn do_copy(args: &Vec<String>) -> Result<(), std::io::Error> {
-    let mut copier = Copier::new(4096);
+    let mut copier = Copier::new(4096 * 1024);
 
     let m = MultiProgress::new();
     let sty = ProgressStyle::with_template(
@@ -57,6 +28,11 @@ pub fn do_copy(args: &Vec<String>) -> Result<(), std::io::Error> {
     let pb = m.add(ProgressBar::new(0));
     pb.set_style(sty);
 
+    let progress_callback = |copied: u64, _: u64| {
+        pb.set_position(copied);
+        pb.set_message(format!("bytes copied"));
+    };
+
     for src in &args[0..args.len() - 1] {
         trace!(
             "Copying {} to {}",
@@ -70,10 +46,7 @@ pub fn do_copy(args: &Vec<String>) -> Result<(), std::io::Error> {
         let len = src_file.metadata().unwrap().len();
         pb.set_length(len);
 
-        copier.copy(src_file, des_file, None, |copied: u64, _: u64| {
-            pb.set_position(copied);
-            pb.set_message(format!("bytes copied"));
-        })?;
+        copier.copy(src_file, des_file, None, Some(&progress_callback))?;
 
         total_pbar.inc(1);
         total_pbar.set_message(format!("files copied"));

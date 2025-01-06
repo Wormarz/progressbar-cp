@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 indicatif = "0.17.9"
 log = "0.4.22"
+libc = "0.2"
 
 [dev-dependencies]
 criterion = "0.3"
@@ -13,3 +14,8 @@ criterion = "0.3"
 [[bench]]
 name = "cp_benchmark"
 harness = false
+
+[features]
+default = ["basecopier", ]
+basecopier = []
+zerocopier = []
