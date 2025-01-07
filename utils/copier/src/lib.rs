@@ -1,5 +1,5 @@
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use log::trace;
+use log::{trace, warn};
 use std::fs;
 
 mod copiers;
@@ -41,6 +41,12 @@ pub fn do_copy(args: &Vec<String>) -> Result<(), std::io::Error> {
         );
 
         let src_file = fs::File::open(src)?;
+        if src_file.metadata().unwrap().is_dir() {
+            warn!("-r not specified, {} is a directory, skipping", src);
+            total_pbar.set_length(total_pbar.length().unwrap_or(1) - 1);
+            continue;
+        }
+
         let des_file =
             fs::File::create(args[args.len() - 1].clone() + "/" + src.rsplit('/').next().unwrap())?;
         let len = src_file.metadata().unwrap().len();
