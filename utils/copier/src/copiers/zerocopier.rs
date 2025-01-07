@@ -1,4 +1,4 @@
-use super::super::filecopier::FileCopier;
+use super::super::filecopy::FileCopy;
 use std::os::fd::{RawFd, AsRawFd};
 pub struct Copier {
     buf_sz: usize,
@@ -11,41 +11,21 @@ impl Copier {
         }
     }
 
-    fn zero_copy(sfd: RawFd, dfd: RawFd, count: usize) -> std::io::Result<usize> {
+    fn zero_copy(sfd: RawFd, dfd: RawFd, count: usize) -> std::io::Result<u64> {
         let ret = unsafe { libc::sendfile(dfd, sfd, std::ptr::null_mut(), count) };
         if ret < 0 {
             Err(std::io::Error::last_os_error())
         } else {
-            Ok(ret as usize)
+            Ok(ret as u64)
         }
     }
 }
 
-impl FileCopier for Copier {
-    fn copy<'a>(
-        &'a mut self,
-        src: std::fs::File,
-        des: std::fs::File,
-        total: Option<u64>,
-        progress_callback: Option<&'a dyn Fn(u64, u64)>,
-    ) -> std::io::Result<u64> {
+impl FileCopy for Copier {
+    fn simple_copy_once(&mut self, src: &mut std::fs::File, des: &mut std::fs::File) -> std::io::Result<u64> {
         let sfd = src.as_raw_fd();
         let dfd = des.as_raw_fd();
-        let mut copied = 0;
 
-        loop {
-            match Copier::zero_copy(sfd, dfd, self.buf_sz) {
-                Ok(0) => break,
-                Ok(n) => {
-                    copied += n as u64;
-                    if let Some(f) = progress_callback {
-                        f(copied, total.unwrap_or(0));
-                    }
-                }
-                Err(e) => return Err(e),
-            }
-        }
-
-        Ok(copied)
+        Self::zero_copy(sfd, dfd, self.buf_sz)
     }
 }

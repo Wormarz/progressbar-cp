@@ -3,9 +3,9 @@ use log::trace;
 use std::fs;
 
 mod copiers;
-mod filecopier;
+mod filecopy;
 
-use crate::filecopier::FileCopier;
+use crate::filecopy::FileCopy;
 
 #[cfg(feature = "basecopier")]
 use copiers::basecopier::Copier;
