@@ -3,8 +3,20 @@ name = "rs_cp"
 version = "0.1.0"
 edition = "2021"
 
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
 [dependencies]
-copier = {path = "./utils/copier"}
+copier = {path = "./utils/copier", features = ["basecopier"] }
 clap = { version = "4.5.23", features = ["derive"] }
 env_logger = "0.11.6"
 log = "0.4.22"
+
+[[bin]]
+name = "pbcp"
+bench = false
+path = "src/main.rs"
+
+[workspace]
+members = ["utils/copier"]
