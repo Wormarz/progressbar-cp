@@ -47,8 +47,7 @@ pub fn do_copy(srcs: &[String], des: &String) -> Result<(), std::io::Error> {
             continue;
         }
 
-        let des_file =
-            fs::File::create(des.clone() + "/" + src.rsplit('/').next().unwrap())?;
+        let des_file = fs::File::create(des.clone() + "/" + src.rsplit('/').next().unwrap())?;
         let len = src_file.metadata().unwrap().len();
         pb.set_length(len);
 

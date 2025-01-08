@@ -1,5 +1,9 @@
 pub trait FileCopy {
-    fn simple_copy_once(&mut self, src: &mut std::fs::File, des: &mut std::fs::File) -> std::io::Result<u64>;
+    fn simple_copy_once(
+        &mut self,
+        src: &mut std::fs::File,
+        des: &mut std::fs::File,
+    ) -> std::io::Result<u64>;
 
     fn copy<'a>(
         &'a mut self,

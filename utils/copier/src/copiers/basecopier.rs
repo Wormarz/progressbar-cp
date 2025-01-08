@@ -14,7 +14,11 @@ impl Copier {
 }
 
 impl FileCopy for Copier {
-    fn simple_copy_once(&mut self, src: &mut std::fs::File, des: &mut std::fs::File) -> std::io::Result<u64> {
+    fn simple_copy_once(
+        &mut self,
+        src: &mut std::fs::File,
+        des: &mut std::fs::File,
+    ) -> std::io::Result<u64> {
         match src.read(&mut self.buffer) {
             Ok(0) => Ok(0),
             Ok(n) => match des.write_all(&self.buffer[..n]) {
