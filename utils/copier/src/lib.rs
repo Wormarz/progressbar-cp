@@ -12,7 +12,7 @@ use copiers::basecopier::Copier;
 #[cfg(feature = "zerocopier")]
 use copiers::zerocopier::Copier;
 
-pub fn do_copy(args: &Vec<String>) -> Result<(), std::io::Error> {
+pub fn do_copy(srcs: &[String], des: &String) -> Result<(), std::io::Error> {
     let mut copier = Copier::new(4096 * 1024);
 
     let m = MultiProgress::new();
@@ -22,7 +22,7 @@ pub fn do_copy(args: &Vec<String>) -> Result<(), std::io::Error> {
     .unwrap()
     .progress_chars("##-");
 
-    let total_pbar = m.add(ProgressBar::new(args.len() as u64 - 1));
+    let total_pbar = m.add(ProgressBar::new(srcs.len() as u64));
     total_pbar.set_style(sty.clone());
 
     let pb = m.add(ProgressBar::new(0));
@@ -33,11 +33,11 @@ pub fn do_copy(args: &Vec<String>) -> Result<(), std::io::Error> {
         pb.set_message(format!("bytes copied"));
     };
 
-    for src in &args[0..args.len() - 1] {
+    for src in srcs {
         trace!(
             "Copying {} to {}",
             src,
-            args[args.len() - 1].clone() + "/" + src.rsplit('/').next().unwrap()
+            des.clone() + "/" + src.rsplit('/').next().unwrap()
         );
 
         let src_file = fs::File::open(src)?;
@@ -48,7 +48,7 @@ pub fn do_copy(args: &Vec<String>) -> Result<(), std::io::Error> {
         }
 
         let des_file =
-            fs::File::create(args[args.len() - 1].clone() + "/" + src.rsplit('/').next().unwrap())?;
+            fs::File::create(des.clone() + "/" + src.rsplit('/').next().unwrap())?;
         let len = src_file.metadata().unwrap().len();
         pb.set_length(len);
 

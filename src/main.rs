@@ -24,6 +24,12 @@ impl Args {
             Ok(())
         }
     }
+
+    fn apart_srcs_des(&self) -> Result<(&[String], &String), std::io::Error> {
+        let srcs = &self.srcs_des[0..self.srcs_des.len() - 1];
+        let des = &self.srcs_des[self.srcs_des.len() - 1];
+        Ok((srcs, des))
+    }
 }
 
 fn main() -> Result<(), std::io::Error> {
@@ -33,5 +39,7 @@ fn main() -> Result<(), std::io::Error> {
     debug!("{:?}", args);
     args.check()?;
 
-    copier::do_copy(&args.srcs_des)
+    let (srcs, des) = args.apart_srcs_des()?;
+
+    copier::do_copy(srcs, des)
 }
