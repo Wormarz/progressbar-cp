@@ -19,4 +19,4 @@ bench = false
 path = "src/main.rs"
 
 [workspace]
-members = ["utils/copier"]
+members = ["utils/copier", "utils/scanner"]
