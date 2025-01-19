@@ -4,8 +4,9 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+log.workspace = true
+anyhow.workspace = true
 indicatif = "0.17.9"
-log = "0.4.22"
 libc = {version = "0.2", optional = true}
 
 [dev-dependencies]
