@@ -1,15 +1,16 @@
+use anyhow::Context;
 use log::trace;
 use std::fs;
 use walkdir::WalkDir;
 
-pub fn scan_dir(srcs: &[String]) -> Result<Vec<String>, std::io::Error> {
+pub fn scan_dir(srcs: &[String]) -> anyhow::Result<Vec<String>> {
     let mut new_srcs: Vec<String> = Vec::with_capacity(srcs.len() * 2);
     for src in srcs {
-        if fs::metadata(src)?.is_dir() {
-            for entry in WalkDir::new(src)
-                .into_iter()
-                .filter_map(Result::ok)
-            {
+        if fs::metadata(src)
+            .with_context(|| format!("failed to read metadata of {}", src))?
+            .is_dir()
+        {
+            for entry in WalkDir::new(src).into_iter().filter_map(Result::ok) {
                 trace!("{}", entry.path().to_str().unwrap());
                 new_srcs.push(entry.path().to_str().unwrap().to_string());
             }
@@ -26,7 +27,11 @@ mod tests {
 
     #[test]
     fn scan_dir_works() {
-        let ret = scan_dir(&vec!["../../utils".to_string(), "../../README.md".to_string()]).unwrap();
+        let ret = scan_dir(&vec![
+            "../../utils".to_string(),
+            "../../README.md".to_string(),
+        ])
+        .unwrap();
         // println!("{:?}", ret);
     }
 }

@@ -14,25 +14,22 @@ struct Args {
 }
 
 impl Args {
-    fn check(&self) -> Result<(), std::io::Error> {
+    fn check(&self) -> anyhow::Result<()> {
         if self.srcs_des.len() < 2 {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "Need at least a src and a des",
-            ))
+            Err(anyhow::anyhow!("Need at least a src and a des"))
         } else {
             Ok(())
         }
     }
 
-    fn apart_srcs_des(&self) -> Result<(&[String], &String), std::io::Error> {
+    fn apart_srcs_des(&self) -> anyhow::Result<(&[String], &String)> {
         let srcs = &self.srcs_des[0..self.srcs_des.len() - 1];
         let des = &self.srcs_des[self.srcs_des.len() - 1];
         Ok((srcs, des))
     }
 }
 
-fn main() -> Result<(), std::io::Error> {
+fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     env_logger::init();
 
@@ -41,5 +38,7 @@ fn main() -> Result<(), std::io::Error> {
 
     let (srcs, des) = args.apart_srcs_des()?;
 
-    copier::do_copy(srcs, des)
+    copier::do_copy(srcs, des)?;
+
+    Ok(())
 }
