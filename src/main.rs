@@ -1,7 +1,7 @@
 use clap::Parser;
 use log::debug;
 
-/// Simple program to greet a person
+/// rs_cp - copy files
 #[derive(Parser, Debug)]
 #[command(
     version,
