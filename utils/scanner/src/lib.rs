@@ -7,11 +7,10 @@ pub fn scan_dir(srcs: &[String]) -> Result<Vec<String>, std::io::Error> {
     for src in srcs {
         if fs::metadata(src)?.is_dir() {
             for entry in WalkDir::new(src)
-                .follow_links(true)
                 .into_iter()
                 .filter_map(Result::ok)
             {
-                println!("{}", entry.path().to_str().unwrap());
+                trace!("{}", entry.path().to_str().unwrap());
                 new_srcs.push(entry.path().to_str().unwrap().to_string());
             }
         } else {
