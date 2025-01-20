@@ -24,14 +24,33 @@ pub fn scan_dir(srcs: &[String]) -> anyhow::Result<Vec<String>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::File;
+    use tempfile;
 
     #[test]
     fn scan_dir_works() {
-        let ret = scan_dir(&vec![
-            "../../utils".to_string(),
-            "../../README.md".to_string(),
-        ])
-        .unwrap();
-        // println!("{:?}", ret);
+        let temp_dir = tempfile::tempdir_in(".").unwrap();
+        let file_path = temp_dir.path().join("my-temporary-note.txt");
+        let _file = File::create(file_path).unwrap();
+        let ret = scan_dir(&vec![temp_dir.path().to_str().unwrap().to_string()]).unwrap();
+        println!("{:?}", ret);
+        assert_eq!(
+            ret,
+            vec![
+                temp_dir.path().to_str().unwrap().to_string(),
+                temp_dir
+                    .path()
+                    .join("my-temporary-note.txt")
+                    .to_str()
+                    .unwrap()
+                    .to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn scan_nonexistent_dir() {
+        let ret = scan_dir(&vec!["nonexistent_dir".to_string()]);
+        assert!(ret.is_err());
     }
 }
