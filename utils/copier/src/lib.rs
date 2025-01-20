@@ -71,9 +71,7 @@ pub fn do_copy(srcs: &[String], des: &String) -> anyhow::Result<()> {
         total_pbar.set_message(format!("files copied"));
     }
     total_pbar.finish_with_message("All files copied");
-    m.clear()?;
-
-    Ok(())
+    Ok(m.clear()?)
 }
 
 // #[cfg(test)]

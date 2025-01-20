@@ -38,7 +38,5 @@ fn main() -> anyhow::Result<()> {
 
     let (srcs, des) = args.apart_srcs_des()?;
 
-    copier::do_copy(srcs, des)?;
-
-    Ok(())
+    Ok(copier::do_copy(srcs, des)?)
 }
