@@ -1,3 +1,6 @@
+use std::str;
+
+use anyhow::Context;
 use clap::Parser;
 use log::debug;
 
@@ -11,6 +14,9 @@ use log::debug;
 struct Args {
     /// Copy from SRCS... to DES
     srcs_des: Vec<String>,
+    /// recursive copy
+    #[arg(short, long)]
+    recursive: bool,
 }
 
 impl Args {
@@ -29,14 +35,74 @@ impl Args {
     }
 }
 
+struct BaseAction;
+
+impl copier::InCopyAction for BaseAction {
+    fn has_before(&self) -> bool {
+        true
+    }
+
+    fn has_after(&self) -> bool {
+        false
+    }
+
+    fn before(&self, spath: &str, _: &str) -> anyhow::Result<()> {
+        if std::fs::metadata(spath).with_context(|| format!("failed to read metadata of {}", spath))?.is_dir() {
+            anyhow::bail!("{} is a directory, should specify -r.", spath);
+        }
+
+        Ok(())
+    }
+
+    fn after(&self, _: &str, _: &str) -> anyhow::Result<()> {
+        todo!();
+    }
+}
+
+struct RecursiveAction;
+
+impl copier::InCopyAction for RecursiveAction {
+    fn has_before(&self) -> bool {
+        true
+    }
+
+    fn has_after(&self) -> bool {
+        false
+    }
+
+    fn before(&self, spath: &str, dpath: &str) -> anyhow::Result<()> {
+        debug!("Before copy {} to {}", spath, dpath);
+        Ok(())
+    }
+
+    fn after(&self, _: &str, _: &str) -> anyhow::Result<()> {
+        todo!();
+    }
+    
+}
+
+struct ActionBuilder;
+
+impl ActionBuilder {
+    fn build(args: &Args) -> Box<dyn copier::InCopyAction> {
+        if args.recursive {
+            Box::new(RecursiveAction)
+        } else {
+            Box::new(BaseAction)
+        }
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     env_logger::init();
+
+    let cus_act = ActionBuilder::build(&args);
 
     debug!("{:?}", args);
     args.check()?;
 
     let (srcs, des) = args.apart_srcs_des()?;
 
-    Ok(copier::do_copy(srcs, des)?)
+    Ok(copier::do_copy(srcs, des, &*cus_act)?)
 }

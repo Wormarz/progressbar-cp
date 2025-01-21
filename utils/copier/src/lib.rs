@@ -1,6 +1,6 @@
 use anyhow::Context;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use log::{trace, warn};
+use log::trace;
 use std::fs;
 
 mod copiers;
@@ -13,7 +13,15 @@ use copiers::basecopier::Copier;
 #[cfg(feature = "zerocopier")]
 use copiers::zerocopier::Copier;
 
-pub fn do_copy(srcs: &[String], des: &String) -> anyhow::Result<()> {
+pub trait InCopyAction {
+    fn has_before(&self) -> bool;
+    fn has_after(&self) -> bool;
+    fn before(&self, spath: &str, dpath: &str) -> anyhow::Result<()>;
+    fn after(&self, spath: &str, dpath: &str) -> anyhow::Result<()>;
+}
+
+pub fn do_copy(srcs: &[String], des: &String, in_act: &dyn InCopyAction) -> anyhow::Result<()>
+{
     let mut copier = Copier::new(4096 * 1024);
 
     let m = MultiProgress::new();
@@ -41,13 +49,16 @@ pub fn do_copy(srcs: &[String], des: &String) -> anyhow::Result<()> {
             des.clone() + "/" + src.rsplit('/').next().unwrap()
         );
 
+        if in_act.has_before() {
+            in_act.before(src, des)?;
+        }
+
         let src_file = fs::File::open(src)?;
         if src_file
             .metadata()
             .with_context(|| format!("failed to read metadata of {}", src))?
             .is_dir()
         {
-            warn!("-r not specified, {} is a directory, skipping", src);
             total_pbar.set_length(total_pbar.length().unwrap_or(1) - 1);
             continue;
         }
@@ -66,6 +77,10 @@ pub fn do_copy(srcs: &[String], des: &String) -> anyhow::Result<()> {
         pb.set_length(len);
 
         copier.copy(src_file, des_file, None, Some(&progress_callback))?;
+
+        if in_act.has_after() {
+            in_act.after(src, des)?;
+        }
 
         total_pbar.inc(1);
         total_pbar.set_message(format!("files copied"));
