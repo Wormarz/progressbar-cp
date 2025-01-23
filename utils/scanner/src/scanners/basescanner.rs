@@ -134,9 +134,8 @@ mod tests {
         let dfolder = des_dir_path.to_str().unwrap().to_string()
             + "/"
             + src_dir_path.to_str().unwrap().rsplit('/').next().unwrap();
-        let dlink = dfolder.clone()
-            + "/"
-            + src_link_path.to_str().unwrap().rsplit('/').next().unwrap();
+        let dlink =
+            dfolder.clone() + "/" + src_link_path.to_str().unwrap().rsplit('/').next().unwrap();
         assert_eq!(des_paths, vec![dfolder, dlink]);
     }
 
