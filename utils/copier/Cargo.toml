@@ -7,10 +7,11 @@ edition.workspace = true
 log.workspace = true
 anyhow.workspace = true
 indicatif = "0.17.9"
-libc = {version = "0.2", optional = true}
+libc = "0.2"
 
 [dev-dependencies]
 criterion = "0.3"
+tempfile = "3.15.0"
 
 [[bench]]
 name = "cp_benchmark"
@@ -18,4 +19,4 @@ harness = false
 
 [features]
 basecopier = []
-zerocopier = ["libc", ]
+zerocopier = []
