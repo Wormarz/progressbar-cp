@@ -1,8 +1,7 @@
-use std::str;
-
 use anyhow::Context;
 use clap::Parser;
 use log::debug;
+use scanner::DirScan;
 
 /// rs_cp - copy files
 #[derive(Parser, Debug)]
@@ -28,81 +27,100 @@ impl Args {
         }
     }
 
-    fn apart_srcs_des(&self) -> anyhow::Result<(&[String], &String)> {
-        let srcs = &self.srcs_des[0..self.srcs_des.len() - 1];
-        let des = &self.srcs_des[self.srcs_des.len() - 1];
-        Ok((srcs, des))
-    }
-}
+    fn apart_srcs_des(&self) -> anyhow::Result<(Vec<String>, Vec<String>)> {
+        let len = self.srcs_des.len();
+        let src_paths = &self.srcs_des[0..(len - 1)];
+        let des = &self.srcs_des[len - 1];
 
-struct BaseAction;
+        let is_des_dir = std::fs::metadata(des)
+            .with_context(|| format!("Failed to get metadata of {}", des))?
+            .is_dir();
 
-impl copier::InCopyAction for BaseAction {
-    fn has_before(&self) -> bool {
-        true
-    }
+        match len {
+            2 => {
+                let is_src_dir = std::fs::metadata(&src_paths[0])
+                                .with_context(|| format!("Failed to get metadata of {}", &src_paths[0]))?
+                                .is_dir();
 
-    fn has_after(&self) -> bool {
-        false
-    }
-
-    fn before(&self, spath: &str, _: &str) -> anyhow::Result<()> {
-        if std::fs::metadata(spath).with_context(|| format!("failed to read metadata of {}", spath))?.is_dir() {
-            anyhow::bail!("{} is a directory, should specify -r.", spath);
-        }
-
-        Ok(())
-    }
-
-    fn after(&self, _: &str, _: &str) -> anyhow::Result<()> {
-        todo!();
-    }
-}
-
-struct RecursiveAction;
-
-impl copier::InCopyAction for RecursiveAction {
-    fn has_before(&self) -> bool {
-        true
-    }
-
-    fn has_after(&self) -> bool {
-        false
-    }
-
-    fn before(&self, spath: &str, dpath: &str) -> anyhow::Result<()> {
-        debug!("Before copy {} to {}", spath, dpath);
-        Ok(())
-    }
-
-    fn after(&self, _: &str, _: &str) -> anyhow::Result<()> {
-        todo!();
-    }
+                match (is_src_dir, is_des_dir) {
+                    (false, true) => {
+                        Ok((
+                            vec![src_paths[0].clone()],
+                            vec![des.clone() + "/" + src_paths[0].rsplit('/').next().unwrap()],
+                        ))
+                    }
+                    (false, false) => {
+                        Ok((vec![src_paths[0].clone()], vec![des.clone()]))
+                    }
+                    (true, true) => {
+                        if self.recursive {
+                            let scanner = scanner::scanners::basescanner::BaseScanner::new(des);
+                            let (src_paths, des_paths) = scanner.scan(src_paths)?;
     
-}
+                            Ok((src_paths, des_paths))
+                        } else {
+                            Err(anyhow::anyhow!(
+                                "{} is a directory, should specify -r", src_paths[0]
+                            ))
+                        }
+                    }
+                    (true, false) => {
+                        Err(anyhow::anyhow!(
+                            "The last argument should be a directory when have more than 2 sources"
+                        ))
+                    }
+                }
+            }
+            _ => {
+                if is_des_dir {
+                    if self.recursive {
+                        let scanner = scanner::scanners::basescanner::BaseScanner::new(des);
+                        let (src_paths, des_paths) = scanner.scan(src_paths)?;
 
-struct ActionBuilder;
-
-impl ActionBuilder {
-    fn build(args: &Args) -> Box<dyn copier::InCopyAction> {
-        if args.recursive {
-            Box::new(RecursiveAction)
-        } else {
-            Box::new(BaseAction)
+                        Ok((src_paths, des_paths))
+                    } else {
+                        let mut des_paths = Vec::new();
+                        for src in src_paths {
+                            let is_src_dir = std::fs::metadata(src)
+                                .with_context(|| format!("Failed to get metadata of {}", src))?
+                                .is_dir();
+                            if is_src_dir {
+                                return Err(anyhow::anyhow!(
+                                    "The last argument should be a directory when have more than 2 sources"
+                                ));
+                            } else {
+                                des_paths.push(des.clone() + "/" + src.rsplit('/').next().unwrap());
+                            }
+                        }
+                        Ok((src_paths.to_vec(), des_paths))
+                    }
+                } else {
+                    Err(anyhow::anyhow!(
+                        "The last argument should be a directory when have more than 2 sources"
+                    ))
+                }
+            }
         }
     }
+}
+
+fn do_pbcopy(src_paths: &[String], des_paths: &[String], _args: Args) -> anyhow::Result<()> {
+    for (src, des) in src_paths.iter().zip(des_paths.iter()) {
+        println!("Copy from {} to {}", src, des);
+    }
+    Ok(())
 }
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     env_logger::init();
 
-    let cus_act = ActionBuilder::build(&args);
-
     debug!("{:?}", args);
     args.check()?;
 
-    let (srcs, des) = args.apart_srcs_des()?;
+    let (src_paths, des_paths) = args.apart_srcs_des()?;
 
-    Ok(copier::do_copy(srcs, des, &*cus_act)?)
+    debug!("src_paths: {:?}\ndes_paths: {:?}", src_paths, des_paths);
+
+    Ok(do_pbcopy(&src_paths, &des_paths, args)?)
 }
