@@ -61,7 +61,11 @@ mod tests {
             let src_file_reopen = File::open(&src_file_path).unwrap();
             let des_file = File::create(&des_file_path).unwrap();
 
-            print!("from {} to {}", src_file_path.display(), des_file_path.display());
+            print!(
+                "from {} to {}",
+                src_file_path.display(),
+                des_file_path.display()
+            );
 
             let ret = copier.copy(src_file_reopen, des_file, None, None).unwrap();
 
@@ -76,4 +80,3 @@ mod tests {
         assert_eq!(test_str, des_content);
     }
 }
-
