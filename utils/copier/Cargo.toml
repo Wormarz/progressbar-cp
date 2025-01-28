@@ -15,7 +15,3 @@ tempfile = "3.15.0"
 [[bench]]
 name = "cp_benchmark"
 harness = false
-
-[features]
-basecopier = []
-zerocopier = []

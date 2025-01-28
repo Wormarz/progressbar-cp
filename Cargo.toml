@@ -27,3 +27,8 @@ path = "src/main.rs"
 
 [workspace]
 members = ["utils/copier", "utils/scanner"]
+
+[features]
+default = ["basecopier",]
+basecopier = []
+zerocopier = []
