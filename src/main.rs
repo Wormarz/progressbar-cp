@@ -1,6 +1,6 @@
 use anyhow::Context;
 use clap::Parser;
-use log::debug;
+use log::{debug, trace};
 use scanner::DirScan;
 
 /// rs_cp - copy files
@@ -106,7 +106,7 @@ impl Args {
 
 fn do_pbcopy(src_paths: &[String], des_paths: &[String], _args: Args) -> anyhow::Result<()> {
     for (src, des) in src_paths.iter().zip(des_paths.iter()) {
-        println!("Copy from {} to {}", src, des);
+        trace!("Copy from {} to {}", src, des);
     }
     Ok(())
 }
