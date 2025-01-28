@@ -69,10 +69,17 @@ mod tests {
 
         let scanner = BaseScanner::new(des_dir_path.to_str().unwrap());
 
-        let relative_src = src_dir_path.file_name().unwrap().to_string_lossy().to_string();
+        let relative_src = src_dir_path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .to_string();
 
         let (src_paths, des_paths) = scanner
-            .scan(&vec![src_dir_path.to_str().unwrap().to_string(), relative_src.clone()])
+            .scan(&vec![
+                src_dir_path.to_str().unwrap().to_string(),
+                relative_src.clone(),
+            ])
             .unwrap();
 
         println!("src_paths: {:?}\ndes_paths: {:?}", src_paths, des_paths);
@@ -81,7 +88,10 @@ mod tests {
         let sfile = src_file_path.to_str().unwrap().to_string();
         let sfolder_relative = relative_src.clone();
         let sfile_relative = relative_src + "/my-temporary-note.txt";
-        assert_eq!(src_paths, vec![sfolder, sfile, sfolder_relative, sfile_relative]);
+        assert_eq!(
+            src_paths,
+            vec![sfolder, sfile, sfolder_relative, sfile_relative]
+        );
 
         let dfolder = des_dir_path.to_str().unwrap().to_string()
             + "/"
@@ -89,7 +99,10 @@ mod tests {
         let dfile =
             dfolder.clone() + "/" + src_file_path.to_str().unwrap().rsplit('/').next().unwrap();
 
-        assert_eq!(des_paths, vec![dfolder.clone(), dfile.clone(), dfolder, dfile]);
+        assert_eq!(
+            des_paths,
+            vec![dfolder.clone(), dfile.clone(), dfolder, dfile]
+        );
     }
 
     #[test]
