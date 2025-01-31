@@ -139,7 +139,14 @@ fn do_pbcopy(src_paths: &[String], des_paths: &[String], _args: Args) -> anyhow:
             .is_dir()
         {
             // create directory
-            std::fs::create_dir(des)?;
+            match std::fs::create_dir(des) {
+                Ok(_) => continue,
+                Err(e) => {
+                    if e.kind() != std::io::ErrorKind::AlreadyExists {
+                        return Err(e.into());
+                    }
+                },
+            };
         } else {
             //copy file
             let des_file = File::create(des)?;
