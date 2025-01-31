@@ -70,7 +70,8 @@ impl Args {
                         }
                     }
                     (true, false) => Err(anyhow::anyhow!(
-                        "\'{}\' is a directory, should specify a directory as the last argument", src_paths[0]
+                        "\'{}\' is a directory, should specify a directory as the last argument",
+                        src_paths[0]
                     )),
                 }
             }
@@ -89,7 +90,8 @@ impl Args {
                                 .is_dir();
                             if is_src_dir {
                                 return Err(anyhow::anyhow!(
-                                    "The last argument should be a directory when have more than 2 sources"
+                                    "\'{}\' is a directory, should specify -r",
+                                    src
                                 ));
                             } else {
                                 des_paths.push(des.clone() + "/" + src.rsplit('/').next().unwrap());
@@ -99,7 +101,7 @@ impl Args {
                     }
                 } else {
                     Err(anyhow::anyhow!(
-                        "The last argument should be a directory when have more than 2 sources"
+                        "\'{}\' is not a directory, should specify a directory as the last argument when having multiple srcs", des
                     ))
                 }
             }
@@ -145,7 +147,7 @@ fn do_pbcopy(src_paths: &[String], des_paths: &[String], _args: Args) -> anyhow:
                     if e.kind() != std::io::ErrorKind::AlreadyExists {
                         return Err(e.into());
                     }
-                },
+                }
             };
         } else {
             //copy file
