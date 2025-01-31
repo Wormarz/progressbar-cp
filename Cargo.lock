@@ -510,6 +510,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "progressbar-cp"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap 4.5.23",
+ "copier",
+ "env_logger",
+ "indicatif",
+ "log",
+ "scanner",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -566,19 +579,6 @@ name = "regex-syntax"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adad44e29e4c806119491a7f06f03de4d1af22c3a680dd47f1e6e179439d1f56"
-
-[[package]]
-name = "rs_cp"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap 4.5.23",
- "copier",
- "env_logger",
- "indicatif",
- "log",
- "scanner",
-]
 
 [[package]]
 name = "rustix"
