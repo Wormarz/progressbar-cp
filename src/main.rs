@@ -70,7 +70,7 @@ impl Args {
                         }
                     }
                     (true, false) => Err(anyhow::anyhow!(
-                        "The last argument should be a directory when have more than 2 sources"
+                        "\'{}\' is a directory, should specify a directory as the last argument", src_paths[0]
                     )),
                 }
             }
