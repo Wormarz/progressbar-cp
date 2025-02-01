@@ -137,12 +137,11 @@ fn do_pbcopy(src_paths: &[String], des_paths: &[String], _args: Args) -> anyhow:
         trace!("Copy from {} to {}", src, des);
 
         let src_file = File::open(src)?;
-
-        if src_file
+        let src_metadata = src_file
             .metadata()
-            .with_context(|| format!("Failed to get metadata of {}", src))?
-            .is_dir()
-        {
+            .with_context(|| format!("Failed to get metadata of {}", src))?;
+
+        if src_metadata.is_dir() {
             // create directory
             match std::fs::create_dir(des) {
                 Ok(_) => continue,
@@ -155,6 +154,7 @@ fn do_pbcopy(src_paths: &[String], des_paths: &[String], _args: Args) -> anyhow:
         } else {
             //copy file
             let des_file = File::create(des)?;
+            pb.set_length(src_metadata.len());
 
             copier.copy(src_file, des_file, None, Some(&progress_callback))?;
 
