@@ -1,6 +1,10 @@
 [package]
 name = "progressbar-cp"
 version = "0.1.0"
+authors = ["Wormarz <wormarz@outlook.com>"]
+license = "MIT"
+description = "A tool to copy files. It shows processing by progress bar."
+readme = "README.md"
 edition = "2021"
 
 [workspace.package]
