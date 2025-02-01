@@ -25,6 +25,10 @@ name = "pbcp"
 bench = false
 path = "src/main.rs"
 
+[profile.release]
+strip = true
+lto = true
+
 [workspace]
 members = ["utils/copier", "utils/scanner"]
 
