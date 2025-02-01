@@ -11,12 +11,12 @@ use copier::copiers::basecopier::Copier;
 #[cfg(feature = "zerocopier")]
 use copier::copiers::zerocopier::Copier;
 
-/// rs_cp - copy files
+/// pbcp - copy files
 #[derive(Parser, Debug)]
 #[command(
     version,
-    about = "rs_cp - copy files",
-    long_about = "rs_cp - copy files"
+    about,
+    long_about = "pbcp - copy files"
 )]
 struct Args {
     /// Copy from SRCS... to DES
