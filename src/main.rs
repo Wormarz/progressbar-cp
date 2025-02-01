@@ -13,11 +13,7 @@ use copier::copiers::zerocopier::Copier;
 
 /// pbcp - copy files
 #[derive(Parser, Debug)]
-#[command(
-    version,
-    about,
-    long_about = "pbcp - copy files"
-)]
+#[command(version, about, long_about = "pbcp - copy files")]
 struct Args {
     /// Copy from SRCS... to DES
     srcs_des: Vec<String>,
@@ -40,9 +36,16 @@ impl Args {
         let src_paths = &self.srcs_des[0..(len - 1)];
         let des = &self.srcs_des[len - 1];
 
-        let is_des_dir = std::fs::metadata(des)
-            .with_context(|| format!("Failed to get metadata of {}", des))?
-            .is_dir();
+        let is_des_dir = match std::fs::metadata(des) {
+            Ok(metadata) => metadata.is_dir(),
+            Err(e) => {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    false
+                } else {
+                    return Err(e.into());
+                }
+            }
+        };
 
         match len {
             2 => {
