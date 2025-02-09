@@ -9,9 +9,4 @@ anyhow.workspace = true
 libc = "0.2"
 
 [dev-dependencies]
-criterion = "0.3"
 tempfile = "3.15.0"
-
-[[bench]]
-name = "cp_benchmark"
-harness = false
