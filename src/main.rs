@@ -1,9 +1,13 @@
+mod actions;
+mod arg;
+
+use actions::ActRet;
 use anyhow::Context;
+use arg::Args;
 use clap::Parser;
 use copier::FileCopy;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use log::{debug, trace};
-use scanner::DirScan;
 use std::fs::File;
 
 #[cfg(feature = "basecopier")]
@@ -11,108 +15,12 @@ use copier::copiers::basecopier::Copier;
 #[cfg(feature = "zerocopier")]
 use copier::copiers::zerocopier::Copier;
 
-/// pbcp - copy files
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = "pbcp - copy files")]
-struct Args {
-    /// Copy from SRCS... to DES
-    srcs_des: Vec<String>,
-    /// recursive copy
-    #[arg(short, long)]
-    recursive: bool,
-}
-
-impl Args {
-    fn check(&self) -> anyhow::Result<()> {
-        if self.srcs_des.len() < 2 {
-            Err(anyhow::anyhow!("Need at least a src and a des"))
-        } else {
-            Ok(())
-        }
-    }
-
-    fn apart_srcs_des(&self) -> anyhow::Result<(Vec<String>, Vec<String>)> {
-        let len = self.srcs_des.len();
-        let src_paths = &self.srcs_des[0..(len - 1)];
-        let des = &self.srcs_des[len - 1];
-
-        let is_des_dir = match std::fs::metadata(des) {
-            Ok(metadata) => metadata.is_dir(),
-            Err(e) => {
-                if e.kind() == std::io::ErrorKind::NotFound {
-                    false
-                } else {
-                    return Err(e.into());
-                }
-            }
-        };
-
-        match len {
-            2 => {
-                let is_src_dir = std::fs::metadata(&src_paths[0])
-                    .with_context(|| format!("Failed to get metadata of {}", &src_paths[0]))?
-                    .is_dir();
-
-                match (is_src_dir, is_des_dir) {
-                    (false, true) => Ok((
-                        vec![src_paths[0].clone()],
-                        vec![des.clone() + "/" + src_paths[0].rsplit('/').next().unwrap()],
-                    )),
-                    (false, false) => Ok((vec![src_paths[0].clone()], vec![des.clone()])),
-                    (true, true) => {
-                        if self.recursive {
-                            let scanner = scanner::scanners::basescanner::BaseScanner::new(des);
-                            let (src_paths, des_paths) = scanner.scan(src_paths)?;
-
-                            Ok((src_paths, des_paths))
-                        } else {
-                            Err(anyhow::anyhow!(
-                                "{} is a directory, should specify -r",
-                                src_paths[0]
-                            ))
-                        }
-                    }
-                    (true, false) => Err(anyhow::anyhow!(
-                        "\'{}\' is a directory, should specify a directory as the last argument",
-                        src_paths[0]
-                    )),
-                }
-            }
-            _ => {
-                if is_des_dir {
-                    if self.recursive {
-                        let scanner = scanner::scanners::basescanner::BaseScanner::new(des);
-                        let (src_paths, des_paths) = scanner.scan(src_paths)?;
-
-                        Ok((src_paths, des_paths))
-                    } else {
-                        let mut des_paths = Vec::new();
-                        for src in src_paths {
-                            let is_src_dir = std::fs::metadata(src)
-                                .with_context(|| format!("Failed to get metadata of {}", src))?
-                                .is_dir();
-                            if is_src_dir {
-                                return Err(anyhow::anyhow!(
-                                    "\'{}\' is a directory, should specify -r",
-                                    src
-                                ));
-                            } else {
-                                des_paths.push(des.clone() + "/" + src.rsplit('/').next().unwrap());
-                            }
-                        }
-                        Ok((src_paths.to_vec(), des_paths))
-                    }
-                } else {
-                    Err(anyhow::anyhow!(
-                        "\'{}\' is not a directory, should specify a directory as the last argument when having multiple srcs", des
-                    ))
-                }
-            }
-        }
-    }
-}
-
-fn do_pbcopy(src_paths: &[String], des_paths: &[String], _args: Args) -> anyhow::Result<()> {
+fn do_pbcopy(
+    src_paths: &[String],
+    des_paths: &[String],
+    precopy_acts: Vec<Box<dyn Fn(&str, &str) -> anyhow::Result<ActRet>>>,
+    postcopy_acts: Vec<Box<dyn Fn(&str, &str) -> anyhow::Result<()>>>,
+) -> anyhow::Result<()> {
     let mut copier = Copier::new(4096 * 1024);
 
     let m = MultiProgress::new();
@@ -136,30 +44,37 @@ fn do_pbcopy(src_paths: &[String], des_paths: &[String], _args: Args) -> anyhow:
     for (src, des) in src_paths.iter().zip(des_paths.iter()) {
         trace!("Copy from {} to {}", src, des);
 
+        let mut act_ret = ActRet::GoOn;
+        for act in &precopy_acts {
+            act_ret = match act(src, des)? {
+                ActRet::SkipCopy => ActRet::SkipCopy,
+                _ => act_ret,
+            }
+        }
+
+        match act_ret {
+            ActRet::SkipCopy => continue,
+            _ => {}
+        }
+
+        //copy file
         let src_file = File::open(src)?;
-        let src_metadata = src_file
-            .metadata()
-            .with_context(|| format!("Failed to get metadata of {}", src))?;
+        let des_file = File::create(des)?;
 
-        if src_metadata.is_dir() {
-            // create directory
-            match std::fs::create_dir(des) {
-                Ok(_) => continue,
-                Err(e) => {
-                    if e.kind() != std::io::ErrorKind::AlreadyExists {
-                        return Err(e.into());
-                    }
-                }
-            };
-        } else {
-            //copy file
-            let des_file = File::create(des)?;
-            pb.set_length(src_metadata.len());
+        pb.set_length(
+            src_file
+                .metadata()
+                .with_context(|| format!("Failed to get metadata of {}", src))?
+                .len(),
+        );
 
-            copier.copy(src_file, des_file, None, Some(&progress_callback))?;
+        copier.copy(src_file, des_file, None, Some(&progress_callback))?;
 
-            total_pbar.inc(1);
-            total_pbar.set_message(format!("files copied"));
+        total_pbar.inc(1);
+        total_pbar.set_message(format!("files copied"));
+
+        for act in &postcopy_acts {
+            act(src, des)?;
         }
     }
 
@@ -172,11 +87,17 @@ fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     debug!("{:?}", args);
-    args.check()?;
 
-    let (src_paths, des_paths) = args.apart_srcs_des()?;
+    let (src_paths, des_paths) = args.zip_src2des_pairs()?;
+
+    let (precopy_acts, poscopy_acts) = args.build_in_progress_actions()?;
 
     debug!("src_paths: {:?}\ndes_paths: {:?}", src_paths, des_paths);
 
-    Ok(do_pbcopy(&src_paths, &des_paths, args)?)
+    Ok(do_pbcopy(
+        &src_paths,
+        &des_paths,
+        precopy_acts,
+        poscopy_acts,
+    )?)
 }
