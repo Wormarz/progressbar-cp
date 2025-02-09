@@ -1,15 +1,19 @@
-[package]
-name = "progressbar-cp"
-version = "0.1.0"
-authors = ["Wormarz <wormarz@outlook.com>"]
-license = "MIT"
-description = "A tool to copy files. It shows processing by progress bar."
-readme = "README.md"
-edition = "2021"
-
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
+
+[package]
+name = "progressbar-cp"
+version.workspace = true
+authors = ["Wormarz <wormarz@outlook.com>"]
+license = "MIT"
+description = "A tool to copy files. It shows processing by progress bar."
+homepage = "https://github.com/Wormarz/progressbar-cp"
+repository = "https://github.com/Wormarz/progressbar-cp"
+keywords = ["cli", "copy", "progressbar"]
+categories = ["command-line-utilities"]
+readme = "README.md"
+edition.workspace = true
 
 [workspace.dependencies]
 log = "0.4.22"
