@@ -1,0 +1,42 @@
+name: Release
+
+on:
+    push:
+      tags:
+        - 'v*'
+
+jobs:
+  release:
+    name: release ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            archive: tar.gz
+    steps:
+      - uses: actions/checkout@master
+      - name: Get info
+        id: get_info
+        run: |
+            echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+            echo ::set-output name=REPO_NAME::${GITHUB_REPOSITORY##*/}
+      - name: Compile
+        id: compile
+        uses: rust-build/rust-build.action@v1.4.5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          RUSTTARGET: ${{ matrix.target }}
+          ARCHIVE_TYPES: ${{ matrix.archive }}
+          ARCHIVE_NAME: ${{ steps.get_info.outputs.REPO_NAME }}_${{ steps.get_info.outputs.VERSION }}_${{ matrix.target }}
+          UPLOAD_MODE: none
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: true
+          files: |
+                  ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+                  ${{ steps.compile.outputs.BUILT_CHECKSUM }}
