@@ -16,6 +16,9 @@ pub struct Args {
     /// recursive copy
     #[arg(short, long)]
     recursive: bool,
+    /// copy only when the source file is newer than the destination file or when the destination file is missing
+    #[arg(short, long)]
+    update: bool,
 }
 
 impl Args {
@@ -110,6 +113,10 @@ impl Args {
 
         if self.recursive {
             precopy_actions.push(Box::new(crate::actions::recursive::recursive_action));
+        }
+
+        if self.update {
+            precopy_actions.push(Box::new(crate::actions::update::update_action));
         }
 
         Ok((precopy_actions, _postcopy_actions))
