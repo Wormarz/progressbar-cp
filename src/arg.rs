@@ -1,4 +1,4 @@
-use crate::actions::ActRet;
+use crate::actions;
 use anyhow::Context;
 use clap::Parser;
 use scanner::DirScan;
@@ -104,19 +104,16 @@ impl Args {
 
     pub fn build_in_progress_actions(
         &self,
-    ) -> anyhow::Result<(
-        Vec<Box<dyn Fn(&str, &str) -> anyhow::Result<ActRet>>>,
-        Vec<Box<dyn Fn(&str, &str) -> anyhow::Result<()>>>,
-    )> {
-        let mut precopy_actions = Vec::<Box<dyn Fn(&str, &str) -> anyhow::Result<ActRet>>>::new();
-        let mut _postcopy_actions = Vec::<Box<dyn Fn(&str, &str) -> anyhow::Result<()>>>::new();
+    ) -> anyhow::Result<(Vec<Box<dyn actions::Action>>, Vec<Box<dyn actions::Action>>)> {
+        let mut precopy_actions = Vec::<Box<dyn actions::Action>>::new();
+        let mut _postcopy_actions = Vec::<Box<dyn actions::Action>>::new();
 
         if self.recursive {
-            precopy_actions.push(Box::new(crate::actions::recursive::recursive_action));
+            precopy_actions.push(Box::new(crate::actions::recursive::RecursiveAction));
         }
 
         if self.update {
-            precopy_actions.push(Box::new(crate::actions::update::update_action));
+            precopy_actions.push(Box::new(crate::actions::update::UpdateAction));
         }
 
         Ok((precopy_actions, _postcopy_actions))

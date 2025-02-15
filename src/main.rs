@@ -1,7 +1,7 @@
 mod actions;
 mod arg;
 
-use actions::ActRet;
+use actions::{ActRet, Action};
 use anyhow::Context;
 use arg::Args;
 use clap::Parser;
@@ -18,8 +18,8 @@ use copier::copiers::zerocopier::Copier;
 fn do_pbcopy(
     src_paths: &[String],
     des_paths: &[String],
-    precopy_acts: Vec<Box<dyn Fn(&str, &str) -> anyhow::Result<ActRet>>>,
-    postcopy_acts: Vec<Box<dyn Fn(&str, &str) -> anyhow::Result<()>>>,
+    precopy_acts: Vec<Box<dyn Action>>,
+    postcopy_acts: Vec<Box<dyn Action>>,
 ) -> anyhow::Result<()> {
     let mut copier = Copier::new(4096 * 1024);
 
@@ -46,7 +46,7 @@ fn do_pbcopy(
 
         let mut act_ret = ActRet::GoOn;
         for act in &precopy_acts {
-            act_ret = match act(src, des)? {
+            act_ret = match act.run(src, des)? {
                 ActRet::SkipCopy => ActRet::SkipCopy,
                 _ => act_ret,
             }
@@ -74,7 +74,7 @@ fn do_pbcopy(
         total_pbar.set_message(format!("files copied"));
 
         for act in &postcopy_acts {
-            act(src, des)?;
+            act.run(src, des)?;
         }
     }
 

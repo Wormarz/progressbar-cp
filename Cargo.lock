@@ -145,7 +145,7 @@ dependencies = [
 
 [[package]]
 name = "copier"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "libc",
@@ -303,7 +303,7 @@ dependencies = [
 
 [[package]]
 name = "progressbar-cp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -376,7 +376,7 @@ dependencies = [
 
 [[package]]
 name = "scanner"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "log",
