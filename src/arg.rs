@@ -19,6 +19,9 @@ pub struct Args {
     /// copy only when the source file is newer than the destination file or when the destination file is missing
     #[arg(short, long)]
     update: bool,
+    /// preserve the specified attributes (default: mode,ownership,timestamps), if possible additional attributes: context, links, xattr, all
+    #[arg(short, long, value_name = "ATTR_LIST")]
+    preserve: Vec<String>,
 }
 
 impl Args {
@@ -114,6 +117,12 @@ impl Args {
 
         if self.update {
             precopy_actions.push(Box::new(crate::actions::update::UpdateAction));
+        }
+
+        if !self.preserve.is_empty() {
+            precopy_actions.push(Box::new(crate::actions::preserve::PreserveAction::new(
+                self.preserve.join(","),
+            )));
         }
 
         Ok((precopy_actions, _postcopy_actions))

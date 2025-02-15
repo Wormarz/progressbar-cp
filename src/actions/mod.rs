@@ -7,5 +7,6 @@ pub trait Action {
     fn run(&self, src: &str, dst: &str) -> anyhow::Result<ActRet>;
 }
 
+pub mod preserve;
 pub mod recursive;
 pub mod update;
