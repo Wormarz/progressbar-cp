@@ -46,3 +46,7 @@ members = ["utils/copier", "utils/scanner"]
 default = ["basecopier",]
 basecopier = []
 zerocopier = []
+
+[dev-dependencies]
+assert_cmd = "2.0"
+tempfile = "3.15.0"
