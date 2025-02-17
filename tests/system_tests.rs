@@ -16,6 +16,10 @@ fn test_recursive_copy() {
     cmd.assert().success();
 
     assert!(des_dir.join("src/file1.txt").exists());
+    assert_eq!(
+        fs::read_to_string(des_dir.join("src/file1.txt")).unwrap(),
+        "Hello, world!"
+    );
 }
 
 #[test]
