@@ -1,6 +1,7 @@
 use assert_cmd::Command;
 use filetime;
 use std::fs;
+use std::os::unix::fs::MetadataExt;
 use tempfile::tempdir;
 
 #[test]
@@ -62,5 +63,35 @@ fn test_update_copy() {
 
 #[test]
 fn test_preserve_attributes() {
-    todo!()
+    let temp_dir = tempdir().unwrap();
+    let src_file = temp_dir.path().join("src.txt");
+    let des_file = temp_dir.path().join("des.txt");
+    fs::write(&src_file, "Content").unwrap();
+
+    let mut cmd = Command::cargo_bin("pbcp").unwrap();
+    cmd.arg("--preserve=mode,ownership,timestamps")
+        .arg(&src_file)
+        .arg("--")
+        .arg(&des_file);
+    cmd.assert().success();
+
+    let src_metadata = fs::metadata(&src_file).unwrap();
+    let des_metadata = fs::metadata(&des_file).unwrap();
+
+    // Check permissions
+    assert_eq!(src_metadata.permissions(), des_metadata.permissions());
+
+    // Check ownership
+    assert_eq!(src_metadata.uid(), des_metadata.uid());
+    assert_eq!(src_metadata.gid(), des_metadata.gid());
+
+    // Check timestamps
+    assert_eq!(
+        src_metadata.modified().unwrap(),
+        des_metadata.modified().unwrap()
+    );
+    assert_eq!(
+        src_metadata.accessed().unwrap(),
+        des_metadata.accessed().unwrap()
+    );
 }
