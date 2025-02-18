@@ -21,7 +21,7 @@ pub struct Args {
     update: bool,
     /// preserve the specified attributes (default: mode,ownership,timestamps), if possible additional attributes: context, links, xattr, all
     #[arg(short, long, value_name = "ATTR_LIST")]
-    preserve: Vec<String>,
+    preserve: String,
 }
 
 impl Args {
@@ -121,7 +121,7 @@ impl Args {
 
         if !self.preserve.is_empty() {
             precopy_actions.push(Box::new(crate::actions::preserve::PreserveAction::new(
-                self.preserve.join(","),
+                self.preserve.clone(),
             )));
         }
 
