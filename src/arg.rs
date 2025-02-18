@@ -21,7 +21,7 @@ pub struct Args {
     update: bool,
     /// preserve the specified attributes (default: mode,ownership,timestamps), if possible additional attributes: context, links, xattr, all
     #[arg(short, long, value_name = "ATTR_LIST")]
-    preserve: String,
+    preserve: Option<String>,
 }
 
 impl Args {
@@ -109,7 +109,7 @@ impl Args {
         &self,
     ) -> anyhow::Result<(Vec<Box<dyn actions::Action>>, Vec<Box<dyn actions::Action>>)> {
         let mut precopy_actions = Vec::<Box<dyn actions::Action>>::new();
-        let mut _postcopy_actions = Vec::<Box<dyn actions::Action>>::new();
+        let mut postcopy_actions = Vec::<Box<dyn actions::Action>>::new();
 
         if self.recursive {
             precopy_actions.push(Box::new(crate::actions::recursive::RecursiveAction));
@@ -119,12 +119,12 @@ impl Args {
             precopy_actions.push(Box::new(crate::actions::update::UpdateAction));
         }
 
-        if !self.preserve.is_empty() {
-            precopy_actions.push(Box::new(crate::actions::preserve::PreserveAction::new(
-                self.preserve.clone(),
+        if let Some(preserve) = self.preserve.clone() {
+            postcopy_actions.push(Box::new(crate::actions::preserve::PreserveAction::new(
+                preserve,
             )));
         }
 
-        Ok((precopy_actions, _postcopy_actions))
+        Ok((precopy_actions, postcopy_actions))
     }
 }
