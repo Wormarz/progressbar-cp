@@ -4,7 +4,8 @@ pub enum ActRet {
 }
 
 pub trait Action {
-    fn run(&self, src: &str, dst: &str) -> anyhow::Result<ActRet>;
+    fn pre_run(&self, src: &str, dst: &str) -> anyhow::Result<ActRet>;
+    fn post_run(&self, src: &str, dst: &str) -> anyhow::Result<()>;
 }
 
 pub mod preserve;

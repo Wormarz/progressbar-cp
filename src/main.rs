@@ -46,7 +46,7 @@ fn do_pbcopy(
 
         let mut act_ret = ActRet::GoOn;
         for act in &precopy_acts {
-            act_ret = match act.run(src, des)? {
+            act_ret = match act.pre_run(src, des)? {
                 ActRet::SkipCopy => ActRet::SkipCopy,
                 _ => act_ret,
             }
@@ -74,7 +74,7 @@ fn do_pbcopy(
         total_pbar.set_message(format!("files copied"));
 
         for act in &postcopy_acts {
-            act.run(src, des)?;
+            act.post_run(src, des)?;
         }
     }
 

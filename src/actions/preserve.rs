@@ -15,7 +15,23 @@ impl PreserveAction {
 }
 
 impl Action for PreserveAction {
-    fn run(&self, src: &str, des: &str) -> anyhow::Result<ActRet> {
+    fn pre_run(&self, src: &str, des: &str) -> anyhow::Result<ActRet> {
+        let attributes: Vec<&str> = self.attrs.split(',').collect();
+
+        for attr in attributes {
+            if attr == "links" {
+                if let Ok(target) = fs::read_link(src) {
+                    std::os::unix::fs::symlink(&target, des)
+                        .with_context(|| format!("Failed to create symlink for: {}", des))?;
+                    return Ok(ActRet::SkipCopy);
+                }
+            }
+        }
+
+        Ok(ActRet::GoOn)
+    }
+
+    fn post_run(&self, src: &str, des: &str) -> anyhow::Result<()> {
         let src_metadata = fs::metadata(src)
             .with_context(|| format!("Failed to get metadata of source: {}", src))?;
 
@@ -43,6 +59,6 @@ impl Action for PreserveAction {
             }
         }
 
-        Ok(ActRet::GoOn)
+        Ok(())
     }
 }

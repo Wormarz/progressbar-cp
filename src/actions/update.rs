@@ -4,7 +4,7 @@ use anyhow::Context;
 pub struct UpdateAction;
 
 impl Action for UpdateAction {
-    fn run(&self, src: &str, des: &str) -> anyhow::Result<ActRet> {
+    fn pre_run(&self, src: &str, des: &str) -> anyhow::Result<ActRet> {
         let des_metadata = match std::fs::metadata(des) {
             Ok(metadata) => metadata,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(ActRet::GoOn),
@@ -21,5 +21,9 @@ impl Action for UpdateAction {
             return Ok(ActRet::SkipCopy);
         }
         Ok(ActRet::GoOn)
+    }
+
+    fn post_run(&self, _src: &str, _des: &str) -> anyhow::Result<()> {
+        Ok(())
     }
 }
