@@ -45,14 +45,20 @@ impl Args {
                 let is_src_dir = std::fs::metadata(&src_paths[0])
                     .with_context(|| format!("Failed to get metadata of {}", &src_paths[0]))?
                     .is_dir();
+                let is_src_link = std::fs::symlink_metadata(&src_paths[0])
+                    .with_context(|| {
+                        format!("Failed to get symlink metadata of {}", &src_paths[0])
+                    })?
+                    .file_type()
+                    .is_symlink();
 
-                match (is_src_dir, is_des_dir) {
-                    (false, true) => Ok((
+                match (is_src_dir, is_des_dir, is_src_link) {
+                    (false, true, _) => Ok((
                         vec![src_paths[0].clone()],
                         vec![des.clone() + "/" + src_paths[0].rsplit('/').next().unwrap()],
                     )),
-                    (false, false) => Ok((vec![src_paths[0].clone()], vec![des.clone()])),
-                    (true, true) => {
+                    (false, false, _) => Ok((vec![src_paths[0].clone()], vec![des.clone()])),
+                    (true, true, _) => {
                         if self.recursive {
                             let scanner = scanner::scanners::basescanner::BaseScanner::new(des);
                             let (src_paths, des_paths) = scanner.scan(src_paths)?;
@@ -65,10 +71,11 @@ impl Args {
                             ))
                         }
                     }
-                    (true, false) => Err(anyhow::anyhow!(
+                    (true, false, false) => Err(anyhow::anyhow!(
                         "\'{}\' is a directory, should specify a directory as the last argument",
                         src_paths[0]
                     )),
+                    (true, false, true) => Ok((vec![src_paths[0].clone()], vec![des.clone()])),
                 }
             }
             _ => {
@@ -119,6 +126,9 @@ impl Args {
         }
 
         if let Some(preserve) = self.preserve.clone() {
+            precopy_actions.push(Box::new(crate::actions::preserve::PreserveAction::new(
+                preserve.clone(),
+            )));
             postcopy_actions.push(Box::new(crate::actions::preserve::PreserveAction::new(
                 preserve,
             )));
