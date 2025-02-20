@@ -3,9 +3,8 @@ use anyhow::Context;
 use clap::Parser;
 use scanner::DirScan;
 
-/// pbcp - copy files
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = "pbcp - copy files")]
+#[command(version, about, long_about)]
 pub struct Args {
     /// the copy sources
     #[arg(required(true))]
