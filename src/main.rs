@@ -9,6 +9,7 @@ use copier::FileCopy;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use log::{debug, trace};
 use std::fs::File;
+use std::rc::Rc;
 
 #[cfg(feature = "basecopier")]
 use copier::copiers::basecopier::Copier;
@@ -18,8 +19,8 @@ use copier::copiers::zerocopier::Copier;
 fn do_pbcopy(
     src_paths: &[String],
     des_paths: &[String],
-    precopy_acts: Vec<Box<dyn Action>>,
-    postcopy_acts: Vec<Box<dyn Action>>,
+    precopy_acts: Vec<Rc<dyn Action>>,
+    postcopy_acts: Vec<Rc<dyn Action>>,
 ) -> anyhow::Result<()> {
     let mut copier = Copier::new(4096 * 1024);
 
@@ -45,7 +46,7 @@ fn do_pbcopy(
         trace!("Copy from {} to {}", src, des);
 
         let mut act_ret = ActRet::GoOn;
-        for act in &precopy_acts {
+        for act in precopy_acts.iter() {
             act_ret = match act.pre_run(src, des)? {
                 ActRet::SkipCopy => ActRet::SkipCopy,
                 _ => act_ret,
@@ -73,7 +74,7 @@ fn do_pbcopy(
         total_pbar.inc(1);
         total_pbar.set_message(format!("files copied"));
 
-        for act in &postcopy_acts {
+        for act in postcopy_acts.iter() {
             act.post_run(src, des)?;
         }
     }

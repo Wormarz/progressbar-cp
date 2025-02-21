@@ -1,7 +1,8 @@
-use crate::actions;
+use super::actions;
 use anyhow::Context;
 use clap::Parser;
 use scanner::DirScan;
+use std::rc::Rc;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about)]
@@ -113,25 +114,22 @@ impl Args {
 
     pub fn build_in_progress_actions(
         &self,
-    ) -> anyhow::Result<(Vec<Box<dyn actions::Action>>, Vec<Box<dyn actions::Action>>)> {
-        let mut precopy_actions = Vec::<Box<dyn actions::Action>>::new();
-        let mut postcopy_actions = Vec::<Box<dyn actions::Action>>::new();
+    ) -> anyhow::Result<(Vec<Rc<dyn actions::Action>>, Vec<Rc<dyn actions::Action>>)> {
+        let mut precopy_actions = Vec::<Rc<dyn actions::Action>>::new();
+        let mut postcopy_actions = Vec::<Rc<dyn actions::Action>>::new();
 
         if self.recursive {
-            precopy_actions.push(Box::new(crate::actions::recursive::RecursiveAction));
+            precopy_actions.push(Rc::new(actions::recursive::RecursiveAction));
         }
 
         if self.update {
-            precopy_actions.push(Box::new(crate::actions::update::UpdateAction));
+            precopy_actions.push(Rc::new(actions::update::UpdateAction));
         }
 
         if let Some(preserve) = self.preserve.clone() {
-            precopy_actions.push(Box::new(crate::actions::preserve::PreserveAction::new(
-                preserve.clone(),
-            )));
-            postcopy_actions.push(Box::new(crate::actions::preserve::PreserveAction::new(
-                preserve,
-            )));
+            let pact_rc = Rc::new(actions::preserve::PreserveAction::new(preserve.clone()));
+            precopy_actions.push(pact_rc.clone());
+            postcopy_actions.push(pact_rc);
         }
 
         Ok((precopy_actions, postcopy_actions))
