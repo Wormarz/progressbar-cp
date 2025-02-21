@@ -1,4 +1,4 @@
-use super::{ActRet, Action};
+use super::{ActRet, PostAction, PreAction};
 use anyhow::Context;
 use filetime;
 use std::fs;
@@ -14,7 +14,7 @@ impl PreserveAction {
     }
 }
 
-impl Action for PreserveAction {
+impl PreAction for PreserveAction {
     fn pre_run(&self, src: &str, des: &str) -> anyhow::Result<ActRet> {
         let attributes: Vec<&str> = self.attrs.split(',').collect();
 
@@ -30,7 +30,9 @@ impl Action for PreserveAction {
 
         Ok(ActRet::GoOn)
     }
+}
 
+impl PostAction for PreserveAction {
     fn post_run(&self, src: &str, des: &str) -> anyhow::Result<()> {
         let src_metadata = fs::metadata(src)
             .with_context(|| format!("Failed to get metadata of source: {}", src))?;

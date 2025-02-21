@@ -3,8 +3,11 @@ pub enum ActRet {
     SkipCopy,
 }
 
-pub trait Action {
+pub trait PreAction {
     fn pre_run(&self, src: &str, dst: &str) -> anyhow::Result<ActRet>;
+}
+
+pub trait PostAction {
     fn post_run(&self, src: &str, dst: &str) -> anyhow::Result<()>;
 }
 

@@ -114,9 +114,12 @@ impl Args {
 
     pub fn build_in_progress_actions(
         &self,
-    ) -> anyhow::Result<(Vec<Rc<dyn actions::Action>>, Vec<Rc<dyn actions::Action>>)> {
-        let mut precopy_actions = Vec::<Rc<dyn actions::Action>>::new();
-        let mut postcopy_actions = Vec::<Rc<dyn actions::Action>>::new();
+    ) -> anyhow::Result<(
+        Vec<Rc<dyn actions::PreAction>>,
+        Vec<Rc<dyn actions::PostAction>>,
+    )> {
+        let mut precopy_actions = Vec::<Rc<dyn actions::PreAction>>::new();
+        let mut postcopy_actions = Vec::<Rc<dyn actions::PostAction>>::new();
 
         if self.recursive {
             precopy_actions.push(Rc::new(actions::recursive::RecursiveAction));

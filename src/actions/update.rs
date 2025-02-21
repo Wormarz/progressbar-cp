@@ -1,9 +1,9 @@
-use super::{ActRet, Action};
+use super::{ActRet, PreAction};
 use anyhow::Context;
 
 pub struct UpdateAction;
 
-impl Action for UpdateAction {
+impl PreAction for UpdateAction {
     fn pre_run(&self, src: &str, des: &str) -> anyhow::Result<ActRet> {
         let des_metadata = match std::fs::metadata(des) {
             Ok(metadata) => metadata,
@@ -21,9 +21,5 @@ impl Action for UpdateAction {
             return Ok(ActRet::SkipCopy);
         }
         Ok(ActRet::GoOn)
-    }
-
-    fn post_run(&self, _src: &str, _des: &str) -> anyhow::Result<()> {
-        Ok(())
     }
 }

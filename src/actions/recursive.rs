@@ -1,9 +1,9 @@
-use super::{ActRet, Action};
+use super::{ActRet, PreAction};
 use anyhow::Context;
 
 pub struct RecursiveAction;
 
-impl Action for RecursiveAction {
+impl PreAction for RecursiveAction {
     fn pre_run(&self, src: &str, des: &str) -> anyhow::Result<ActRet> {
         if std::fs::metadata(src)
             .with_context(|| format!("Failed to get metadata of {}", src))?
@@ -18,9 +18,5 @@ impl Action for RecursiveAction {
         } else {
             Ok(ActRet::GoOn)
         }
-    }
-
-    fn post_run(&self, _src: &str, _des: &str) -> anyhow::Result<()> {
-        Ok(())
     }
 }

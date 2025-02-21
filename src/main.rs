@@ -1,7 +1,7 @@
 mod actions;
 mod arg;
 
-use actions::{ActRet, Action};
+use actions::{ActRet, PostAction, PreAction};
 use anyhow::Context;
 use arg::Args;
 use clap::Parser;
@@ -19,8 +19,8 @@ use copier::copiers::zerocopier::Copier;
 fn do_pbcopy(
     src_paths: &[String],
     des_paths: &[String],
-    precopy_acts: Vec<Rc<dyn Action>>,
-    postcopy_acts: Vec<Rc<dyn Action>>,
+    precopy_acts: Vec<Rc<dyn PreAction>>,
+    postcopy_acts: Vec<Rc<dyn PostAction>>,
 ) -> anyhow::Result<()> {
     let mut copier = Copier::new(4096 * 1024);
 
