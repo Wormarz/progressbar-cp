@@ -91,7 +91,7 @@ fn main() -> anyhow::Result<()> {
 
     let (src_paths, des_paths) = args.zip_src2des_pairs()?;
 
-    let (precopy_acts, poscopy_acts) = args.build_in_progress_actions()?;
+    let (precopy_acts, postcopy_acts) = args.build_in_progress_actions()?;
 
     debug!("src_paths: {:?}\ndes_paths: {:?}", src_paths, des_paths);
 
@@ -99,6 +99,6 @@ fn main() -> anyhow::Result<()> {
         &src_paths,
         &des_paths,
         precopy_acts,
-        poscopy_acts,
+        postcopy_acts,
     )?)
 }
