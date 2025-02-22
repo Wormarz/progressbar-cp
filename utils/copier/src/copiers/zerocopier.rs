@@ -35,13 +35,22 @@ impl FileCopy for Copier {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::InCopyAction;
     use std::fs::File;
     use std::io::{Read, Write};
     use tempfile;
 
+    struct MockInCopyAction;
+
+    impl InCopyAction for MockInCopyAction {
+        fn set_length(&self, _: u64) {}
+        fn in_copy_run(&self, _: u64) {}
+    }
+
     #[test]
     fn copy_file_works() {
         let test_str = String::from("copy_file_works test content!");
+        let mock_in_copy_action = MockInCopyAction;
         let mut copier = Copier::new(4096 * 1024);
 
         let temp_dir = tempfile::tempdir_in(".").unwrap();
@@ -67,7 +76,9 @@ mod tests {
                 des_file_path.display()
             );
 
-            let ret = copier.copy(src_file_reopen, des_file, None, None).unwrap();
+            let ret = copier
+                .copy(src_file_reopen, des_file, &mock_in_copy_action)
+                .unwrap();
 
             println!(", {} bytes copied.", ret);
         }

@@ -11,19 +11,19 @@ pub trait FileCopy {
         &'a mut self,
         mut src: std::fs::File,
         mut des: std::fs::File,
-        total: Option<u64>,
-        progress_callback: Option<&'a dyn Fn(u64, u64)>,
+        progress_callback: &'a dyn InCopyAction,
     ) -> std::io::Result<u64> {
         let mut copied = 0;
+
+        progress_callback.set_length(src.metadata().unwrap().len());
 
         loop {
             match Self::simple_copy_once(self, &mut src, &mut des) {
                 Ok(0) => break,
                 Ok(n) => {
                     copied += n;
-                    if let Some(progress_callback) = progress_callback {
-                        progress_callback(copied, total.unwrap_or(0));
-                    }
+                    progress_callback.in_copy_run(copied);
+                    std::thread::sleep(std::time::Duration::from_millis(100));
                 }
                 Err(e) => return Err(e),
             }
@@ -31,4 +31,9 @@ pub trait FileCopy {
 
         Ok(copied)
     }
+}
+
+pub trait InCopyAction {
+    fn set_length(&self, length: u64);
+    fn in_copy_run(&self, copied: u64);
 }

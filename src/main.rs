@@ -1,46 +1,33 @@
 mod actions;
 mod arg;
 
-use actions::{ActRet, PostAction, PreAction};
-use anyhow::Context;
+use actions::ActRet;
 use arg::Args;
 use clap::Parser;
 use copier::FileCopy;
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use log::{debug, trace};
 use std::fs::File;
-use std::rc::Rc;
 
 #[cfg(feature = "basecopier")]
 use copier::copiers::basecopier::Copier;
 #[cfg(feature = "zerocopier")]
 use copier::copiers::zerocopier::Copier;
 
-fn do_pbcopy(
-    src_paths: &[String],
-    des_paths: &[String],
-    precopy_acts: Vec<Rc<dyn PreAction>>,
-    postcopy_acts: Vec<Rc<dyn PostAction>>,
-) -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
+    let args = Args::parse();
+    env_logger::init();
+
+    debug!("{:?}", args);
+
+    let (src_paths, des_paths) = args.zip_src2des_pairs()?;
+
+    let (preparation, precopy_acts, in_copy_action, postcopy_acts, ending) =
+        args.build_in_progress_actions()?;
+
+    debug!("src_paths: {:?}\ndes_paths: {:?}", src_paths, des_paths);
+
     let mut copier = Copier::new(4096 * 1024);
-
-    let m = MultiProgress::new();
-    let sty = ProgressStyle::with_template(
-        "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
-    )
-    .with_context(|| "Failed to create progress style")?
-    .progress_chars("##-");
-
-    let total_pbar = m.add(ProgressBar::new(src_paths.len() as u64));
-    total_pbar.set_style(sty.clone());
-
-    let pb = m.add(ProgressBar::new(0));
-    pb.set_style(sty);
-
-    let progress_callback = |copied: u64, _: u64| {
-        pb.set_position(copied);
-        pb.set_message(format!("bytes copied"));
-    };
+    preparation.get_ready(src_paths.len() as u64)?;
 
     for (src, des) in src_paths.iter().zip(des_paths.iter()) {
         trace!("Copy from {} to {}", src, des);
@@ -62,43 +49,14 @@ fn do_pbcopy(
         let src_file = File::open(src)?;
         let des_file = File::create(des)?;
 
-        pb.set_length(
-            src_file
-                .metadata()
-                .with_context(|| format!("Failed to get metadata of {}", src))?
-                .len(),
-        );
-
-        copier.copy(src_file, des_file, None, Some(&progress_callback))?;
-
-        total_pbar.inc(1);
-        total_pbar.set_message(format!("files copied"));
+        copier.copy(src_file, des_file, &*in_copy_action)?;
 
         for act in postcopy_acts.iter() {
             act.post_run(src, des)?;
         }
     }
 
-    total_pbar.finish_with_message("All files copied");
-    Ok(m.clear()?)
-}
+    ending.done()?;
 
-fn main() -> anyhow::Result<()> {
-    let args = Args::parse();
-    env_logger::init();
-
-    debug!("{:?}", args);
-
-    let (src_paths, des_paths) = args.zip_src2des_pairs()?;
-
-    let (precopy_acts, postcopy_acts) = args.build_in_progress_actions()?;
-
-    debug!("src_paths: {:?}\ndes_paths: {:?}", src_paths, des_paths);
-
-    Ok(do_pbcopy(
-        &src_paths,
-        &des_paths,
-        precopy_acts,
-        postcopy_acts,
-    )?)
+    Ok(())
 }
