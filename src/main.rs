@@ -32,24 +32,23 @@ fn main() -> anyhow::Result<()> {
     for (src, des) in src_paths.iter().zip(des_paths.iter()) {
         trace!("Copy from {} to {}", src, des);
 
-        let mut act_ret = ActRet::GoOn;
-        for act in precopy_acts.iter() {
-            act_ret = match act.pre_run(src, des)? {
-                ActRet::SkipCopy => ActRet::SkipCopy,
-                _ => act_ret,
+        match precopy_acts.iter().fold(ActRet::GoOn, |pre, it| {
+            match (it.pre_run(src, des).unwrap(), pre) {
+                (ActRet::GoOn, pre) => pre,
+                (ActRet::SkipRest, ActRet::SkipCopy) => ActRet::SkipCopy,
+                (ActRet::SkipRest, _) => ActRet::SkipRest,
+                (ActRet::SkipCopy, _) => ActRet::SkipCopy,
             }
-        }
+        }) {
+            ActRet::GoOn => {
+                let src_file = File::open(src)?;
+                let des_file = File::create(des)?;
 
-        match act_ret {
-            ActRet::SkipCopy => continue,
-            _ => {}
-        }
-
-        //copy file
-        let src_file = File::open(src)?;
-        let des_file = File::create(des)?;
-
-        copier.copy(src_file, des_file, &*in_copy_action)?;
+                copier.copy(src_file, des_file, &*in_copy_action)?;
+            }
+            ActRet::SkipRest => continue,
+            ActRet::SkipCopy => {}
+        };
 
         for act in postcopy_acts.iter() {
             act.post_run(src, des)?;

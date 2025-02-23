@@ -123,9 +123,6 @@ impl Args {
     )> {
         let mut precopy_actions = Vec::<Rc<dyn actions::PreAction>>::new();
         let mut postcopy_actions = Vec::<Rc<dyn actions::PostAction>>::new();
-        let preparation = Rc::new(actions::showbar::ShowBar::new()?);
-        let in_copy_action = preparation.clone();
-        let ending = preparation.clone();
 
         if self.recursive {
             precopy_actions.push(Rc::new(actions::recursive::RecursiveAction));
@@ -141,6 +138,9 @@ impl Args {
             postcopy_actions.push(pact_rc);
         }
 
+        let preparation = Rc::new(actions::showbar::ShowBar::new()?);
+        let in_copy_action = preparation.clone();
+        let ending = preparation.clone();
         postcopy_actions.push(preparation.clone());
 
         Ok((

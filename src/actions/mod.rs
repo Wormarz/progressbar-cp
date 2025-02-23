@@ -1,5 +1,6 @@
 pub enum ActRet {
     GoOn,
+    SkipRest,
     SkipCopy,
 }
 

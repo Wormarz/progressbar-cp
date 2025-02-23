@@ -18,7 +18,7 @@ impl PreAction for UpdateAction {
             .modified()
             .with_context(|| format!("Failed to get modified time of source: {}", src))?;
         if src_modified <= des_modified {
-            return Ok(ActRet::SkipCopy);
+            return Ok(ActRet::SkipRest);
         }
         Ok(ActRet::GoOn)
     }
