@@ -36,6 +36,7 @@ bench = false
 path = "src/main.rs"
 
 [profile.release]
+panic = "abort"
 strip = true
 lto = true
 

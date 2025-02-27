@@ -2,6 +2,7 @@ mod actions;
 mod arg;
 
 use actions::ActRet;
+use anyhow::Context;
 use arg::Args;
 use clap::Parser;
 use copier::FileCopy;
@@ -36,7 +37,7 @@ fn main() -> anyhow::Result<()> {
         match precopy_acts.iter().fold(ActRet::GoOn, |pre, act| {
             match (
                 act.pre_run(src, des)
-                    .expect(&format!("pre actions failed({}, {})", src, des)),
+                    .expect(&format!("pre actions failed({} to {})", src, des)),
                 pre,
             ) {
                 (ActRet::GoOn, pre) => pre,
@@ -51,7 +52,7 @@ fn main() -> anyhow::Result<()> {
 
                 copier
                     .copy(src_file, des_file, &*in_copy_action)
-                    .expect(&format!("copy failed({}, {})", src, des));
+                    .with_context(|| format!("copy failed({} to {})", src, des))?;
             }
             ActRet::SkipRest => continue,
             ActRet::SkipCopy => {}
@@ -59,7 +60,7 @@ fn main() -> anyhow::Result<()> {
 
         postcopy_acts.iter().for_each(|act| {
             act.post_run(src, des)
-                .expect(&format!("post actions failed({}, {})", src, des))
+                .expect(&format!("post actions failed({} to {})", src, des))
         });
     }
 
