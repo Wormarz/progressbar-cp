@@ -23,7 +23,6 @@ pub trait FileCopy {
                 Ok(n) => {
                     copied += n;
                     progress_callback.in_copy_run(copied);
-                    std::thread::sleep(std::time::Duration::from_millis(100));
                 }
                 Err(e) => return Err(e),
             }

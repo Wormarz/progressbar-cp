@@ -21,10 +21,11 @@ fn main() -> anyhow::Result<()> {
 
     let (src_paths, des_paths) = args.zip_src2des_pairs()?;
 
+    debug!("src_paths: {:?}", src_paths);
+    debug!("des_paths: {:?}", des_paths);
+
     let (preparation, precopy_acts, in_copy_action, postcopy_acts, ending) =
         args.build_in_progress_actions()?;
-
-    debug!("src_paths: {:?}\ndes_paths: {:?}", src_paths, des_paths);
 
     let mut copier = Copier::new(4096 * 1024);
     preparation.get_ready(src_paths.len() as u64)?;
