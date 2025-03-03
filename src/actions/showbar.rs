@@ -65,9 +65,21 @@ impl Ending for ShowBar {
     }
 }
 
-pub struct DefaultBar;
+pub struct NoBar;
 
-impl InCopyAction for DefaultBar {
+impl Preparation for NoBar {
+    fn get_ready(&self, _: u64) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
+impl InCopyAction for NoBar {
     fn set_length(&self, _: u64) {}
     fn in_copy_run(&self, _: u64) {}
+}
+
+impl Ending for NoBar {
+    fn done(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
 }

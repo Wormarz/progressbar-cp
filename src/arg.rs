@@ -22,6 +22,9 @@ pub struct Args {
     /// preserve the specified attributes (default: mode,ownership,timestamps), if possible additional attributes: context, links, xattr, all
     #[arg(short, long, value_name = "ATTR_LIST")]
     preserve: Option<String>,
+    /// make the progress bar invisible
+    #[arg(short, long)]
+    mute: bool,
 }
 
 impl Args {
@@ -123,6 +126,9 @@ impl Args {
     )> {
         let mut precopy_actions = Vec::<Rc<dyn actions::PreAction>>::new();
         let mut postcopy_actions = Vec::<Rc<dyn actions::PostAction>>::new();
+        let preparation: Rc<dyn actions::Preparation>;
+        let in_copy_action: Rc<dyn copier::InCopyAction>;
+        let ending: Rc<dyn actions::Ending>;
 
         if self.recursive {
             precopy_actions.push(Rc::new(actions::recursive::RecursiveAction));
@@ -138,10 +144,18 @@ impl Args {
             postcopy_actions.push(pact_rc);
         }
 
-        let preparation = Rc::new(actions::showbar::ShowBar::new()?);
-        let in_copy_action = preparation.clone();
-        let ending = preparation.clone();
-        postcopy_actions.push(preparation.clone());
+        if self.mute {
+            let no_bar = Rc::new(actions::showbar::NoBar);
+            preparation = no_bar.clone();
+            in_copy_action = no_bar.clone();
+            ending = no_bar.clone();
+        } else {
+            let show_bar = Rc::new(actions::showbar::ShowBar::new()?);
+            preparation = show_bar.clone();
+            in_copy_action = show_bar.clone();
+            ending = show_bar.clone();
+            postcopy_actions.push(show_bar);
+        };
 
         Ok((
             preparation,
