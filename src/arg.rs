@@ -25,6 +25,9 @@ pub struct Args {
     /// make the progress bar invisible
     #[arg(short, long)]
     mute: bool,
+    /// same as -r --preserve=all
+    #[arg(short, long)]
+    archive: bool,
 }
 
 impl Args {
@@ -116,7 +119,7 @@ impl Args {
     }
 
     pub fn build_in_progress_actions(
-        &self,
+        &mut self,
     ) -> anyhow::Result<(
         Rc<dyn actions::Preparation>,
         Vec<Rc<dyn actions::PreAction>>,
@@ -129,6 +132,11 @@ impl Args {
         let preparation: Rc<dyn actions::Preparation>;
         let in_copy_action: Rc<dyn copier::InCopyAction>;
         let ending: Rc<dyn actions::Ending>;
+
+        if self.archive {
+            self.recursive = true;
+            self.preserve = Some("all".to_string());
+        }
 
         if self.recursive {
             precopy_actions.push(Rc::new(actions::recursive::RecursiveAction));

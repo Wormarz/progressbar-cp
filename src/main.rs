@@ -15,7 +15,7 @@ use copier::copiers::basecopier::Copier;
 use copier::copiers::zerocopier::Copier;
 
 fn main() -> anyhow::Result<()> {
-    let args = Args::parse();
+    let mut args = Args::parse();
     env_logger::init();
 
     debug!("{:?}", args);
