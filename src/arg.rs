@@ -139,7 +139,7 @@ impl Args {
         }
 
         if let Some(preserve) = self.preserve.clone() {
-            let pact_rc = Rc::new(actions::preserve::PreserveAction::new(preserve.clone()));
+            let pact_rc = Rc::new(actions::preserve::PreserveAction::new(preserve));
             precopy_actions.push(pact_rc.clone());
             postcopy_actions.push(pact_rc);
         }
