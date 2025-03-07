@@ -95,3 +95,63 @@ fn test_preserve_attributes() {
         des_metadata.accessed().unwrap()
     );
 }
+
+#[test]
+fn test_preserve_links() {
+    let temp_dir = tempdir().unwrap();
+    let src_file = temp_dir.path().join("src.txt");
+    let link_file = temp_dir.path().join("link.txt");
+    let des_file = temp_dir.path().join("des.txt");
+    
+    fs::write(&src_file, "Content").unwrap();
+    std::os::unix::fs::symlink(&src_file, &link_file).unwrap();
+
+    let mut cmd = Command::cargo_bin("pbcp").unwrap();
+    cmd.arg("--preserve=links")
+        .arg(&link_file)
+        .arg("--")
+        .arg(&des_file);
+    cmd.assert().success();
+
+    assert!(des_file.is_symlink());
+    assert_eq!(fs::read_link(&des_file).unwrap(), fs::read_link(&link_file).unwrap());
+}
+
+#[test]
+fn test_preserve_all() {
+    let temp_dir = tempdir().unwrap();
+    let src_file = temp_dir.path().join("src.txt");
+    let link_file = temp_dir.path().join("link.txt");
+    let des_file = temp_dir.path().join("des.txt");
+    
+    fs::write(&src_file, "Content").unwrap();
+    std::os::unix::fs::symlink(&src_file, &link_file).unwrap();
+
+    let mut cmd = Command::cargo_bin("pbcp").unwrap();
+    cmd.arg("--preserve=all")
+        .arg(&link_file)
+        .arg("--")
+        .arg(&des_file);
+    cmd.assert().success();
+
+    assert!(des_file.is_symlink());
+    assert_eq!(fs::read_link(&des_file).unwrap(), fs::read_link(&link_file).unwrap());
+
+    // Test regular file preservation with all attributes
+    let des_file2 = temp_dir.path().join("des2.txt");
+    let mut cmd = Command::cargo_bin("pbcp").unwrap();
+    cmd.arg("--preserve=all")
+        .arg(&src_file)
+        .arg("--")
+        .arg(&des_file2);
+    cmd.assert().success();
+
+    let src_metadata = fs::metadata(&src_file).unwrap();
+    let des_metadata = fs::metadata(&des_file2).unwrap();
+
+    assert_eq!(src_metadata.permissions(), des_metadata.permissions());
+    assert_eq!(src_metadata.uid(), des_metadata.uid());
+    assert_eq!(src_metadata.gid(), des_metadata.gid());
+    assert_eq!(src_metadata.modified().unwrap(), des_metadata.modified().unwrap());
+    assert_eq!(src_metadata.accessed().unwrap(), des_metadata.accessed().unwrap());
+}

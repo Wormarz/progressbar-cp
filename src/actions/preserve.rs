@@ -10,7 +10,14 @@ pub struct PreserveAction {
 
 impl PreserveAction {
     pub fn new(attrs: String) -> Self {
-        let attrs: Vec<String> = attrs.split(',').map(|s| s.to_string()).collect();
+        let attrs = if attrs == "all" {
+            vec!["links", "mode", "ownership", "timestamps"]
+                .into_iter()
+                .map(|s| s.to_string())
+                .collect()
+        } else {
+            attrs.split(',').map(|s| s.to_string()).collect()
+        };
         PreserveAction { attrs }
     }
 }
