@@ -36,10 +36,15 @@ impl Args {
         let src_paths = &self.srcs[..];
         let des = &self.des;
 
+        // Check if recursive mode is enabled (either directly or via archive)
+        let is_recursive = self.recursive || self.archive;
+        let mut is_des_exists: bool = true;
+
         let is_des_dir = match std::fs::metadata(des) {
             Ok(metadata) => metadata.is_dir(),
             Err(e) => {
                 if e.kind() == std::io::ErrorKind::NotFound {
+                    is_des_exists = false;
                     false
                 } else {
                     return Err(e.into());
@@ -66,9 +71,9 @@ impl Args {
                     )),
                     (false, false, _) => Ok((vec![src_paths[0].clone()], vec![des.clone()])),
                     (true, true, _) => {
-                        if self.recursive {
+                        if is_recursive {
                             let scanner = scanner::scanners::basescanner::BaseScanner::new(des);
-                            let (src_paths, des_paths) = scanner.scan(src_paths)?;
+                            let (src_paths, des_paths) = scanner.scan(src_paths, false)?;
 
                             Ok((src_paths, des_paths))
                         } else {
@@ -78,18 +83,27 @@ impl Args {
                             ))
                         }
                     }
-                    (true, false, false) => Err(anyhow::anyhow!(
-                        "\'{}\' is a directory, should specify a directory as the last argument",
-                        src_paths[0]
-                    )),
+                    (true, false, false) => {
+                        if is_recursive || !is_des_exists {
+                            let scanner = scanner::scanners::basescanner::BaseScanner::new(des);
+                            let (src_paths, des_paths) = scanner.scan(src_paths, true)?;
+
+                            Ok((src_paths, des_paths))
+                        } else {
+                            Err(anyhow::anyhow!(
+                                "\'{}\' is a directory, should specify a directory as the last argument",
+                                src_paths[0]
+                            ))
+                        }
+                    }
                     (true, false, true) => Ok((vec![src_paths[0].clone()], vec![des.clone()])),
                 }
             }
             _ => {
                 if is_des_dir {
-                    if self.recursive {
+                    if is_recursive {
                         let scanner = scanner::scanners::basescanner::BaseScanner::new(des);
-                        let (src_paths, des_paths) = scanner.scan(src_paths)?;
+                        let (src_paths, des_paths) = scanner.scan(src_paths, false)?;
 
                         Ok((src_paths, des_paths))
                     } else {
@@ -110,9 +124,17 @@ impl Args {
                         Ok((src_paths.to_vec(), des_paths))
                     }
                 } else {
-                    Err(anyhow::anyhow!(
-                        "\'{}\' is not a directory, should specify a directory as the last argument when having multiple srcs", des
-                    ))
+                    if is_recursive || !is_des_exists {
+                        let scanner = scanner::scanners::basescanner::BaseScanner::new(des);
+                        let (src_paths, des_paths) = scanner.scan(src_paths, false)?;
+
+                        Ok((src_paths, des_paths))
+                    } else {
+                        Err(anyhow::anyhow!(
+                            "\'{}\' is not a directory, should specify a directory as the last argument when having multiple srcs",
+                            des
+                        ))
+                    }
                 }
             }
         }
