@@ -31,24 +31,27 @@ jobs:
       - name: Install cargo-deb
         run: cargo install cargo-deb
 
-      - name: Extract Binary Name
-        id: extract-bin-name
-        run: echo "BIN_NAME=$(grep -A 1 '\[\[bin\]\]' Cargo.toml | grep 'name =' | cut -d '"' -f2)" >> $GITHUB_ENV
+      - name: Extract Binary
+        id: extract-name
+        run: |
+          echo "BIN_NAME=$(grep -A 1 '\[\[bin\]\]' Cargo.toml | grep 'name =' | cut -d '"' -f2)" >> $GITHUB_ENV
+          echo "PACKAGE_NAME=$(grep -A 1 '\[package\]' Cargo.toml | grep 'name =' | cut -d '"' -f2)" >> $GITHUB_ENV
 
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+          cargo deb --target ${{ matrix.target }}
 
-      - name: Package
+      - name: tarball Package
         run: |
           mkdir -p release
-          tar -czf release/${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release ${{ steps.extract-bin-name.outputs.BIN_NAME }} -C ../../.. README.md LICENSE
-
-      - name: Build .deb Package
-        run: |
-          cargo deb --target ${{ matrix.target }}
           TAG=${GITHUB_REF#refs/tags/}
-          PACKAGE_NAME=$(grep -A 1 '\[package\]' Cargo.toml | grep 'name =' | cut -d '"' -f2)
-          cp target/${{ matrix.target }}/debian/*.deb release/${PACKAGE_NAME}_${TAG#v}_${{ matrix.target }}.deb
+          tar -czf release/${{ steps.extract-name.outputs.PACKAGE_NAME }}_${TAG#v}_${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release ${{ steps.extract-name.outputs.BIN_NAME }} -C ../../.. README.md LICENSE
+
+      - name: .deb Package
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          cp target/${{ matrix.target }}/debian/*.deb release/${{ steps.extract-name.outputs.PACKAGE_NAME }}_${TAG#v}_${{ matrix.target }}.deb
 
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
