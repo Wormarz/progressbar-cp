@@ -31,8 +31,7 @@ jobs:
       - name: Install cargo-deb
         run: cargo install cargo-deb
 
-      - name: Extract Binary
-        id: extract-name
+      - name: ADD ENV
         run: |
           echo "BIN_NAME=$(grep -A 1 '\[\[bin\]\]' Cargo.toml | grep 'name =' | cut -d '"' -f2)" >> $GITHUB_ENV
           echo "PACKAGE_NAME=$(grep -A 1 '\[package\]' Cargo.toml | grep 'name =' | cut -d '"' -f2)" >> $GITHUB_ENV
