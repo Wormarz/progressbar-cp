@@ -51,7 +51,7 @@ jobs:
           cp target/${{ matrix.target }}/debian/*.deb release/${PACKAGE_NAME}_${TAG#v}_${{ matrix.target }}.deb
 
       - name: Upload Release Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}-release
           path: |
