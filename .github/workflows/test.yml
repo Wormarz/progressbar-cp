@@ -26,4 +26,4 @@ jobs:
       - name: Unit tests
         run: cargo test -p copier -p scanner --verbose
       - name: Integration tests
-        run: cargo test --verbose
+        run: cargo test --package progressbar-cp --test system_tests -- --show-output 
