@@ -1,11 +1,11 @@
-use crate::actions;
+use super::actions;
 use anyhow::Context;
 use clap::Parser;
 use scanner::DirScan;
+use std::rc::Rc;
 
-/// pbcp - copy files
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = "pbcp - copy files")]
+#[command(version, about, long_about)]
 pub struct Args {
     /// the copy sources
     #[arg(required(true))]
@@ -21,7 +21,13 @@ pub struct Args {
     update: bool,
     /// preserve the specified attributes (default: mode,ownership,timestamps), if possible additional attributes: context, links, xattr, all
     #[arg(short, long, value_name = "ATTR_LIST")]
-    preserve: Vec<String>,
+    preserve: Option<String>,
+    /// make the progress bar invisible
+    #[arg(short, long)]
+    mute: bool,
+    /// same as -r --preserve=all
+    #[arg(short, long)]
+    archive: bool,
 }
 
 impl Args {
@@ -30,10 +36,15 @@ impl Args {
         let src_paths = &self.srcs[..];
         let des = &self.des;
 
+        // Check if recursive mode is enabled (either directly or via archive)
+        let is_recursive = self.recursive || self.archive;
+        let mut is_des_exists: bool = true;
+
         let is_des_dir = match std::fs::metadata(des) {
             Ok(metadata) => metadata.is_dir(),
             Err(e) => {
                 if e.kind() == std::io::ErrorKind::NotFound {
+                    is_des_exists = false;
                     false
                 } else {
                     return Err(e.into());
@@ -46,17 +57,23 @@ impl Args {
                 let is_src_dir = std::fs::metadata(&src_paths[0])
                     .with_context(|| format!("Failed to get metadata of {}", &src_paths[0]))?
                     .is_dir();
+                let is_src_link = std::fs::symlink_metadata(&src_paths[0])
+                    .with_context(|| {
+                        format!("Failed to get symlink metadata of {}", &src_paths[0])
+                    })?
+                    .file_type()
+                    .is_symlink();
 
-                match (is_src_dir, is_des_dir) {
-                    (false, true) => Ok((
+                match (is_src_dir, is_des_dir, is_src_link) {
+                    (false, true, _) => Ok((
                         vec![src_paths[0].clone()],
                         vec![des.clone() + "/" + src_paths[0].rsplit('/').next().unwrap()],
                     )),
-                    (false, false) => Ok((vec![src_paths[0].clone()], vec![des.clone()])),
-                    (true, true) => {
-                        if self.recursive {
+                    (false, false, _) => Ok((vec![src_paths[0].clone()], vec![des.clone()])),
+                    (true, true, _) => {
+                        if is_recursive {
                             let scanner = scanner::scanners::basescanner::BaseScanner::new(des);
-                            let (src_paths, des_paths) = scanner.scan(src_paths)?;
+                            let (src_paths, des_paths) = scanner.scan(src_paths, false)?;
 
                             Ok((src_paths, des_paths))
                         } else {
@@ -66,17 +83,27 @@ impl Args {
                             ))
                         }
                     }
-                    (true, false) => Err(anyhow::anyhow!(
-                        "\'{}\' is a directory, should specify a directory as the last argument",
-                        src_paths[0]
-                    )),
+                    (true, false, false) => {
+                        if is_recursive || !is_des_exists {
+                            let scanner = scanner::scanners::basescanner::BaseScanner::new(des);
+                            let (src_paths, des_paths) = scanner.scan(src_paths, true)?;
+
+                            Ok((src_paths, des_paths))
+                        } else {
+                            Err(anyhow::anyhow!(
+                                "\'{}\' is a directory, should specify a directory as the last argument",
+                                src_paths[0]
+                            ))
+                        }
+                    }
+                    (true, false, true) => Ok((vec![src_paths[0].clone()], vec![des.clone()])),
                 }
             }
             _ => {
                 if is_des_dir {
-                    if self.recursive {
+                    if is_recursive {
                         let scanner = scanner::scanners::basescanner::BaseScanner::new(des);
-                        let (src_paths, des_paths) = scanner.scan(src_paths)?;
+                        let (src_paths, des_paths) = scanner.scan(src_paths, false)?;
 
                         Ok((src_paths, des_paths))
                     } else {
@@ -97,34 +124,75 @@ impl Args {
                         Ok((src_paths.to_vec(), des_paths))
                     }
                 } else {
-                    Err(anyhow::anyhow!(
-                        "\'{}\' is not a directory, should specify a directory as the last argument when having multiple srcs", des
-                    ))
+                    if is_recursive || !is_des_exists {
+                        let scanner = scanner::scanners::basescanner::BaseScanner::new(des);
+                        let (src_paths, des_paths) = scanner.scan(src_paths, false)?;
+
+                        Ok((src_paths, des_paths))
+                    } else {
+                        Err(anyhow::anyhow!(
+                            "\'{}\' is not a directory, should specify a directory as the last argument when having multiple srcs",
+                            des
+                        ))
+                    }
                 }
             }
         }
     }
 
     pub fn build_in_progress_actions(
-        &self,
-    ) -> anyhow::Result<(Vec<Box<dyn actions::Action>>, Vec<Box<dyn actions::Action>>)> {
-        let mut precopy_actions = Vec::<Box<dyn actions::Action>>::new();
-        let mut _postcopy_actions = Vec::<Box<dyn actions::Action>>::new();
+        &mut self,
+    ) -> anyhow::Result<(
+        Rc<dyn actions::Preparation>,
+        Vec<Rc<dyn actions::PreAction>>,
+        Rc<dyn copier::InCopyAction>,
+        Vec<Rc<dyn actions::PostAction>>,
+        Rc<dyn actions::Ending>,
+    )> {
+        let mut precopy_actions = Vec::<Rc<dyn actions::PreAction>>::new();
+        let mut postcopy_actions = Vec::<Rc<dyn actions::PostAction>>::new();
+        let preparation: Rc<dyn actions::Preparation>;
+        let in_copy_action: Rc<dyn copier::InCopyAction>;
+        let ending: Rc<dyn actions::Ending>;
+
+        if self.archive {
+            self.recursive = true;
+            self.preserve = Some("all".to_string());
+        }
 
         if self.recursive {
-            precopy_actions.push(Box::new(crate::actions::recursive::RecursiveAction));
+            precopy_actions.push(Rc::new(actions::recursive::RecursiveAction));
         }
 
         if self.update {
-            precopy_actions.push(Box::new(crate::actions::update::UpdateAction));
+            precopy_actions.push(Rc::new(actions::update::UpdateAction));
         }
 
-        if !self.preserve.is_empty() {
-            precopy_actions.push(Box::new(crate::actions::preserve::PreserveAction::new(
-                self.preserve.join(","),
-            )));
+        if let Some(preserve) = self.preserve.clone() {
+            let pact_rc = Rc::new(actions::preserve::PreserveAction::new(preserve));
+            precopy_actions.push(pact_rc.clone());
+            postcopy_actions.push(pact_rc);
         }
 
-        Ok((precopy_actions, _postcopy_actions))
+        if self.mute {
+            let no_bar = Rc::new(actions::showbar::NoBar);
+            preparation = no_bar.clone();
+            in_copy_action = no_bar.clone();
+            ending = no_bar.clone();
+        } else {
+            let show_bar = Rc::new(actions::showbar::ShowBar::new()?);
+            preparation = show_bar.clone();
+            in_copy_action = show_bar.clone();
+            ending = show_bar.clone();
+            postcopy_actions.push(show_bar);
+        };
+
+        Ok((
+            preparation,
+            precopy_actions,
+            in_copy_action,
+            postcopy_actions,
+            ending,
+        ))
     }
 }

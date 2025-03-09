@@ -1,10 +1,10 @@
-use super::{ActRet, Action};
+use super::{ActRet, PreAction};
 use anyhow::Context;
 
 pub struct UpdateAction;
 
-impl Action for UpdateAction {
-    fn run(&self, src: &str, des: &str) -> anyhow::Result<ActRet> {
+impl PreAction for UpdateAction {
+    fn pre_run(&self, src: &str, des: &str) -> anyhow::Result<ActRet> {
         let des_metadata = match std::fs::metadata(des) {
             Ok(metadata) => metadata,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(ActRet::GoOn),
@@ -18,7 +18,7 @@ impl Action for UpdateAction {
             .modified()
             .with_context(|| format!("Failed to get modified time of source: {}", src))?;
         if src_modified <= des_modified {
-            return Ok(ActRet::SkipCopy);
+            return Ok(ActRet::SkipRest);
         }
         Ok(ActRet::GoOn)
     }

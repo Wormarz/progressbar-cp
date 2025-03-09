@@ -15,6 +15,18 @@ categories = ["command-line-utilities"]
 readme = "README.md"
 edition.workspace = true
 
+[package.metadata.deb]
+name = "progressbar-cp"
+maintainer = "Wormarz <wormarz@outlook.com>"
+license-file = "LICENSE"
+section = "utils"
+priority = "optional"
+assets = [
+    ["README.md", "usr/share/doc/progressbar-cp/", "644"],
+    ["LICENSE", "usr/share/doc/progressbar-cp/", "644"],
+    ["target/release/pbcp", "usr/bin/", "755"],
+]
+
 [workspace.dependencies]
 log = "0.4.22"
 anyhow = "1.0.95"
@@ -36,6 +48,7 @@ bench = false
 path = "src/main.rs"
 
 [profile.release]
+panic = "abort"
 strip = true
 lto = true
 

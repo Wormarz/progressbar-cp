@@ -1,28 +1,50 @@
-use super::{ActRet, Action};
+use super::{ActRet, PostAction, PreAction};
 use anyhow::Context;
 use filetime;
 use std::fs;
 use std::os::unix::fs::MetadataExt;
 
 pub struct PreserveAction {
-    attrs: String,
+    attrs: Vec<String>,
 }
 
 impl PreserveAction {
     pub fn new(attrs: String) -> Self {
+        let attrs = if attrs == "all" {
+            vec!["links", "mode", "ownership", "timestamps"]
+                .into_iter()
+                .map(|s| s.to_string())
+                .collect()
+        } else {
+            attrs.split(',').map(|s| s.to_string()).collect()
+        };
         PreserveAction { attrs }
     }
 }
 
-impl Action for PreserveAction {
-    fn run(&self, src: &str, des: &str) -> anyhow::Result<ActRet> {
+impl PreAction for PreserveAction {
+    fn pre_run(&self, src: &str, des: &str) -> anyhow::Result<ActRet> {
+        for attr in self.attrs.iter() {
+            if attr == "links" {
+                if let Ok(target) = fs::read_link(src) {
+                    std::os::unix::fs::symlink(&target, des)
+                        .with_context(|| format!("Failed to create symlink for: {}", des))?;
+                    return Ok(ActRet::SkipCopy);
+                }
+            }
+        }
+
+        Ok(ActRet::GoOn)
+    }
+}
+
+impl PostAction for PreserveAction {
+    fn post_run(&self, src: &str, des: &str) -> anyhow::Result<()> {
         let src_metadata = fs::metadata(src)
             .with_context(|| format!("Failed to get metadata of source: {}", src))?;
 
-        let attributes: Vec<&str> = self.attrs.split(',').collect();
-
-        for attr in attributes {
-            match attr {
+        for attr in self.attrs.iter() {
+            match attr.as_str() {
                 "mode" => {
                     fs::set_permissions(des, src_metadata.permissions())
                         .with_context(|| format!("Failed to set permissions for: {}", des))?;
@@ -43,6 +65,6 @@ impl Action for PreserveAction {
             }
         }
 
-        Ok(ActRet::GoOn)
+        Ok(())
     }
 }

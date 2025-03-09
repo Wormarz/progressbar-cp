@@ -2,21 +2,58 @@ name: Build
 
 on:
   push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
-
-env:
-  CARGO_TERM_COLOR: always
+    tags:
+      - 'v*'
 
 jobs:
   build:
-
+    name: Build ${{ matrix.target }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            archive: tar.gz
+          - target: x86_64-unknown-linux-gnu
+            archive: tar.gz
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test -p copier -p scanner --verbose
+      - uses: actions/checkout@v2
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Install cargo-deb
+        run: cargo install cargo-deb
+
+      - name: Extract Binary Name
+        id: extract-bin-name
+        run: echo "BIN_NAME=$(grep -A 1 '\\[\\[bin\\]\\]' Cargo.toml | grep 'name =' | sed 's/name = \"//;s/\"//')" >> $GITHUB_ENV
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package
+        run: |
+          mkdir -p release
+          tar -czf release/${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release ${{ steps.extract-bin-name.outputs.BIN_NAME }} -C ../../.. README.md LICENSE
+
+      - name: Build .deb Package
+        run: |
+          cargo deb --target ${{ matrix.target }}
+          TAG=${GITHUB_REF#refs/tags/}
+          PACKAGE_NAME=$(grep -A 1 '\[package\]' Cargo.toml | grep 'name =' | cut -d '"' -f2)
+          cp target/${{ matrix.target }}/debian/*.deb release/${PACKAGE_NAME}_${TAG#v}_${{ matrix.target }}.deb
+
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.target }}-release
+          path: |
+            release/${{ matrix.target }}.tar.gz
+            release/*.deb
