@@ -33,7 +33,7 @@ jobs:
 
       - name: Extract Binary Name
         id: extract-bin-name
-        run: echo "BIN_NAME=$(grep -A 1 '\\[\\[bin\\]\\]' Cargo.toml | grep 'name =' | sed 's/name = \"//;s/\"//')" >> $GITHUB_ENV
+        run: echo "BIN_NAME=$(grep -A 1 '\[\[bin\]\]' Cargo.toml | grep 'name =' | cut -d '"' -f2)" >> $GITHUB_ENV
 
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
