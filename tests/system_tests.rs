@@ -259,3 +259,45 @@ fn test_archive_option() {
     };
     assert!(difference.as_secs() < 2); // Allow 2 seconds difference
 }
+
+#[test]
+fn test_archive_option_with_symlink() {
+    let temp_dir = tempfile::tempdir_in(".").unwrap();
+
+    // Create a directory structure
+    let src_dir = temp_dir.path().join("src_dir");
+    fs::create_dir_all(&src_dir).unwrap();
+
+    // Create files in sub-directories
+    let src_file = src_dir.join("src.txt");
+    let link_file = src_dir.join("link.txt");
+
+    fs::write(&src_file, "Main content").unwrap();
+    // Create a symlink to the file, using the relative path
+    std::os::unix::fs::symlink(&src_file.file_name().unwrap(), &link_file).unwrap();
+
+    // Create destination directory
+    let des_dir = temp_dir.path().join("des_dir");
+    fs::create_dir_all(&des_dir).unwrap();
+
+    // Run the command with --archive option
+    let mut cmd = Command::cargo_bin("pbcp").unwrap();
+    cmd.arg("-a")
+        .arg(&link_file)
+        .arg(&src_file)
+        .arg("--")
+        .arg(&des_dir);
+    println!("Command: {:?}", cmd);
+    cmd.assert().success();
+
+    // Verify files are copied
+    let des_src_file = des_dir.join("src.txt");
+    let des_link = des_dir.join("link.txt");
+
+    assert!(des_src_file.exists());
+    assert!(des_link.is_symlink());
+    assert_eq!(
+        fs::read_link(&des_link).unwrap(),
+        fs::read_link(&link_file).unwrap()
+    );
+}
