@@ -1,6 +1,7 @@
 use super::{ActRet, PostAction, PreAction};
 use anyhow::Context;
 use filetime;
+use log::debug;
 use std::fs;
 use std::os::unix::fs::MetadataExt;
 
@@ -46,20 +47,35 @@ impl PostAction for PreserveAction {
         for attr in self.attrs.iter() {
             match attr.as_str() {
                 "mode" => {
-                    fs::set_permissions(des, src_metadata.permissions())
-                        .with_context(|| format!("Failed to set permissions for: {}", des))?;
+                    match fs::set_permissions(des, src_metadata.permissions()) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            debug!("Failed to set permissions for: {}", des);
+                            debug!("Error: {}", e);
+                        }
+                    };
                 }
                 "ownership" => {
                     let uid = nix::unistd::Uid::from_raw(src_metadata.uid());
                     let gid = nix::unistd::Gid::from_raw(src_metadata.gid());
-                    nix::unistd::chown(des, Some(uid), Some(gid))
-                        .with_context(|| format!("Failed to set ownership for: {}", des))?;
+                    match nix::unistd::chown(des, Some(uid), Some(gid)) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            debug!("Failed to set ownership for: {}", des);
+                            debug!("Error: {}", e);
+                        }
+                    };
                 }
                 "timestamps" => {
                     let atime = filetime::FileTime::from_last_access_time(&src_metadata);
                     let mtime = filetime::FileTime::from_last_modification_time(&src_metadata);
-                    filetime::set_file_times(des, atime, mtime)
-                        .with_context(|| format!("Failed to set timestamps for: {}", des))?;
+                    match filetime::set_file_times(des, atime, mtime) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            debug!("Failed to set timestamps for: {}", des);
+                            debug!("Error: {}", e);
+                        }
+                    };
                 }
                 _ => {}
             }
