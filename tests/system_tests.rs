@@ -268,7 +268,7 @@ fn test_archive_option_with_symlink() {
     let src_dir = temp_dir.path().join("src_dir");
     fs::create_dir_all(&src_dir).unwrap();
 
-    // Create files in sub-directories
+    // Create files
     let src_file = src_dir.join("src.txt");
     let link_file = src_dir.join("link.txt");
 
@@ -287,7 +287,6 @@ fn test_archive_option_with_symlink() {
         .arg(&src_file)
         .arg("--")
         .arg(&des_dir);
-    println!("Command: {:?}", cmd);
     cmd.assert().success();
 
     // Verify files are copied
