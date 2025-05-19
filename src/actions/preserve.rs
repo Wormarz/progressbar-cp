@@ -28,9 +28,18 @@ impl PreAction for PreserveAction {
         for attr in self.attrs.iter() {
             if attr == "links" {
                 if let Ok(target) = fs::read_link(src) {
-                    std::os::unix::fs::symlink(&target, des)
-                        .with_context(|| format!("Failed to create symlink for: {}", des))?;
-                    return Ok(ActRet::SkipCopy);
+                    match std::os::unix::fs::symlink(&target, des) {
+                        Ok(_) => {
+                            return Ok(ActRet::SkipCopy);
+                        }
+                        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+                            return Ok(ActRet::SkipCopy);
+                        }
+                        Err(e) => {
+                            debug!("Failed to create symlink for: {}", des);
+                            return Err(e.into());
+                        }
+                    }
                 }
             }
         }
