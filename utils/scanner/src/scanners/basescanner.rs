@@ -32,7 +32,11 @@ impl DirScan for BaseScanner<'_> {
             .with_context(|| format!("failed to read metadata of {}", cur_entry))?;
 
         if metadata.is_dir() {
-            for entry in WalkDir::new(cur_entry).into_iter().filter_map(Result::ok) {
+            for entry in WalkDir::new(cur_entry)
+                .follow_root_links(false)
+                .into_iter()
+                .filter_map(Result::ok)
+            {
                 let src_entry = entry.path().to_str().unwrap();
                 trace!("{} found!", src_entry);
 

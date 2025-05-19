@@ -1,14 +1,14 @@
 use super::{ActRet, PreAction};
-use anyhow::Context;
-
+use std::path::Path;
 pub struct RecursiveAction;
 
 impl PreAction for RecursiveAction {
     fn pre_run(&self, src: &str, des: &str) -> anyhow::Result<ActRet> {
-        if std::fs::metadata(src)
-            .with_context(|| format!("Failed to get metadata of {}", src))?
-            .is_dir()
-        {
+        let src_path = Path::new(src);
+
+        if !src_path.exists() {
+            Err(anyhow::anyhow!("Source path does not exist: {}", src))
+        } else if src_path.is_dir() && !src_path.is_symlink() {
             // create directory
             match std::fs::create_dir(des) {
                 Ok(_) => Ok(ActRet::SkipCopy),
